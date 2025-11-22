@@ -12,8 +12,7 @@ from collections import defaultdict
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# --- 1. RÈGLES STATIQUES (13 Règles Exactes) ---
-# Si la 1ère carte du jeu N est la clé -> On prédit la valeur pour N+2
+# --- RÈGLES STATIQUES (13 Règles Exactes) ---
 STATIC_RULES = {
     "10♦️": "♠️", "10♠️": "❤️", 
     "9♣️": "❤️", "9♦️": "♠️",
@@ -28,25 +27,26 @@ STATIC_RULES = {
 SYMBOL_MAP = {0: '✅0️⃣', 1: '✅1️⃣', 2: '✅2️⃣'}
 
 class CardPredictor:
-    """Gère la logique de prédiction d'ENSEIGNE (Couleur) et la vérification."""
+    """
+    Gère la logique de prédiction d'ENSEIGNE (Couleur).
+    Inclut: Mode Statique, Mode INTER (Apprentissage N-2), Gestion 30min.
+    """
 
     def __init__(self, telegram_message_sender=None):
-        # --- A. Chargement des Données ---
+        # --- Chargement Sécurisé (Anti-Crash Render) ---
         self.predictions = self._load_data('predictions.json') 
         self.processed_messages = self._load_data('processed.json', is_set=True) 
         self.last_prediction_time = self._load_data('last_prediction_time.json', is_scalar=True) or 0
         self.last_predicted_game_number = self._load_data('last_predicted_game_number.json', is_scalar=True) or 0
         self.consecutive_fails = self._load_data('consecutive_fails.json', is_scalar=True) or 0
         
-        # --- B. Configuration Canaux ---
-        # Sécurité contre le bug de liste/dict
+        # Config Canaux
         raw_config = self._load_data('channels_config.json')
         self.config_data = raw_config if isinstance(raw_config, dict) else {}
-            
         self.target_channel_id = self.config_data.get('target_channel_id', None)
         self.prediction_channel_id = self.config_data.get('prediction_channel_id', None)
         
-        # --- C. Logique INTER (Intelligente) ---
+        # Logique INTER
         self.telegram_message_sender = telegram_message_sender
         self.active_admin_chat_id = self._load_data('active_admin_chat_id.json', is_scalar=True)
         
@@ -56,37 +56,38 @@ class CardPredictor:
         self.smart_rules = self._load_data('smart_rules.json')
         self.last_analysis_time = self._load_data('last_analysis_time.json', is_scalar=True) or 0
         
-        self.prediction_cooldown = 30 
-        
-        # Analyse initiale au démarrage
-        if self.inter_data and not self.is_inter_mode_active and not self.smart_rules:
+        # Si données présentes mais pas de règles, on force une analyse au démarrage
+        if self.inter_data and not self.smart_rules:
              self.analyze_and_set_smart_rules(initial_load=True)
 
-    # --- Persistance ---
+    # --- Persistance Robuste ---
     def _load_data(self, filename: str, is_set: bool = False, is_scalar: bool = False) -> Any:
+        """Charge les données sans faire planter le bot si le fichier manque."""
+        default = set() if is_set else (None if is_scalar else ({} if filename in ['predictions.json', 'sequential_history.json'] else []))
         try:
-            if not os.path.exists(filename):
-                return set() if is_set else (None if is_scalar else ({} if filename == 'channels_config.json' else []))
+            if not os.path.exists(filename): return default
             with open(filename, 'r') as f:
                 content = f.read().strip()
-                if not content: return set() if is_set else (None if is_scalar else {})
+                if not content: return default
                 data = json.loads(content)
+                
                 if is_set: return set(data)
-                # Conversion des clés str -> int pour les dictionnaires indexés par ID jeu
-                if filename in ['sequential_history.json', 'predictions.json'] and isinstance(data, dict): 
+                # Conversion des clés en int pour les dictionnaires indexés par numéro de jeu
+                if filename in ['sequential_history.json', 'predictions.json'] and isinstance(data, dict):
                     return {int(k): v for k, v in data.items()}
                 return data
-        except Exception as e:
-            logger.error(f"⚠️ Erreur chargement {filename}: {e}")
-            return set() if is_set else (None if is_scalar else {})
+        except Exception:
+            return default
 
     def _save_data(self, data: Any, filename: str):
+        """Sauvegarde 'Best Effort' (Si ça échoue sur Render, on ignore)."""
         try:
             if isinstance(data, set): data = list(data)
             with open(filename, 'w') as f: json.dump(data, f, indent=4)
-        except Exception as e: logger.error(f"❌ Erreur sauvegarde {filename}: {e}")
+        except Exception: pass
 
     def _save_all_data(self):
+        """Sauvegarde tout."""
         self._save_data(self.predictions, 'predictions.json')
         self._save_data(self.processed_messages, 'processed.json')
         self._save_data(self.last_prediction_time, 'last_prediction_time.json')
@@ -110,45 +111,42 @@ class CardPredictor:
         self._save_data(self.config_data, 'channels_config.json')
         return True
 
-    # --- Outils d'Extraction ---
+    # --- Extraction (RegEx Corrigée pour #N...) ---
     def extract_game_number(self, message: str) -> Optional[int]:
-        match = re.search(r'#N(\d+)\.', message, re.IGNORECASE) 
+        # Supporte "#N1381" et "🔵1381🔵"
+        match = re.search(r'#N(\d+)', message, re.IGNORECASE) 
         if not match: match = re.search(r'🔵(\d+)🔵', message)
         return int(match.group(1)) if match else None
 
     def extract_card_details(self, content: str) -> List[Tuple[str, str]]:
-        # Normalise ♥️ en ❤️
         normalized_content = content.replace("♥️", "❤️")
-        # Cherche Valeur + Enseigne (ex: 10♦️, A♠️)
+        # Cherche "10♦️", "A♠️"
         return re.findall(r'(\d+|[AKQJ])(♠️|❤️|♦️|♣️)', normalized_content, re.IGNORECASE)
 
     def get_first_card_info(self, message: str) -> Optional[Tuple[str, str]]:
-        """
-        Retourne la PREMIÈRE carte du PREMIER groupe.
-        Retour: (CarteComplète, Enseigne) -> ex: ("10♦️", "♦️")
-        """
-        # 1. Trouve le contenu entre la première parenthèse (...)
+        """Extrait la 1ère carte du 1er groupe entre parenthèses."""
+        # Cherche le contenu entre parenthèses après le point ou au début
+        # Ex: ". 4(10♦️...)"
         match = re.search(r'\(([^)]*)\)', message)
         if not match: return None
         
-        # 2. Extrait les cartes à l'intérieur
         details = self.extract_card_details(match.group(1))
         if details:
             v, c = details[0]
-            return f"{v.upper()}{c}", c 
+            return f"{v.upper()}{c}", c # ("10♦️", "♦️")
         return None
 
-    # --- Logique INTER (Apprentissage N-2) ---
+    # --- Apprentissage INTER (N-2) ---
     def collect_inter_data(self, game_number: int, message: str):
         info = self.get_first_card_info(message)
         if not info: return
         
         full_card, suit = info
 
-        # 1. Stocker la carte du jeu actuel (N) pour qu'elle serve de déclencheur futur
+        # 1. Stocker N comme futur déclencheur
         self.sequential_history[game_number] = {'carte': full_card, 'date': datetime.now().isoformat()}
         
-        # 2. Vérifier si ce jeu (N) est un résultat pour un déclencheur passé (N-2)
+        # 2. Chercher N-2 pour former une paire
         n_minus_2 = game_number - 2
         trigger_entry = self.sequential_history.get(n_minus_2)
         
@@ -158,24 +156,22 @@ class CardPredictor:
             if not any(e.get('numero_resultat') == game_number for e in self.inter_data):
                 self.inter_data.append({
                     'numero_resultat': game_number,
-                    'declencheur': trigger_card, # La carte unique (ex: "10♦️")
+                    'declencheur': trigger_card, 
                     'numero_declencheur': n_minus_2,
-                    'result_suit': suit, # L'enseigne résultante (ex: "♠️")
+                    'result_suit': suit,
                     'date': datetime.now().isoformat()
                 })
                 self._save_all_data()
 
-        # Nettoyage (Garde les 50 derniers jeux)
+        # Nettoyage (Garde 50 derniers)
         limit = game_number - 50
         self.sequential_history = {k:v for k,v in self.sequential_history.items() if k >= limit}
 
     def analyze_and_set_smart_rules(self, chat_id: int = None, initial_load: bool = False, force_activate: bool = False):
-        """Analyse les données pour trouver les Top 3 règles Enseignes."""
+        """Calcule les Top 3 Règles."""
         counts = defaultdict(lambda: defaultdict(int))
         for entry in self.inter_data:
-            trig = entry['declencheur']
-            res = entry['result_suit']
-            counts[trig][res] += 1
+            counts[entry['declencheur']][entry['result_suit']] += 1
             
         candidates = []
         for trig, results in counts.items():
@@ -183,7 +179,7 @@ class CardPredictor:
             count = results[best_suit]
             candidates.append({'trigger': trig, 'predict': best_suit, 'count': count})
             
-        # Top 3 Global
+        # Tri par fréquence
         self.smart_rules = sorted(candidates, key=lambda x: x['count'], reverse=True)[:3]
         
         # Activation
@@ -198,42 +194,40 @@ class CardPredictor:
         self.last_analysis_time = time.time()
         self._save_all_data()
         
-        # Notification Admin (Toutes les 30min ou forcée)
+        # Notification 30min
         if self.active_admin_chat_id and self.telegram_message_sender and (force_activate or self.is_inter_mode_active):
             msg = "🧠 **MISE À JOUR INTER (30min)**\n\n**Top 3 Règles (Carte -> Enseigne):**\n"
             if self.smart_rules:
                 for r in self.smart_rules:
                     msg += f"🥇 {r['trigger']} → {r['predict']} (x{r['count']})\n"
             else:
-                msg += "Aucune règle fiable trouvée pour le moment."
+                msg += "Aucune règle fiable pour le moment."
             self.telegram_message_sender(self.active_admin_chat_id, msg)
 
     def check_and_update_rules(self):
-        """Vérification périodique (30 minutes)."""
+        """Vérification du délai de 30 minutes."""
         if self.is_inter_mode_active and (time.time() - self.last_analysis_time > 1800):
             self.analyze_and_set_smart_rules(chat_id=self.active_admin_chat_id)
 
-    def get_inter_status(self, force_reanalyze: bool = False) -> Tuple[str, Optional[Dict]]:
-        if force_reanalyze: self.analyze_and_set_smart_rules()
-        
+    def get_inter_status(self) -> Tuple[str, Optional[Dict]]:
         msg = f"**🧠 ETAT DU MODE INTELLIGENT**\n\n"
         msg += f"**Actif :** {'✅ OUI' if self.is_inter_mode_active else '❌ NON'}\n"
-        msg += f"**Données collectées :** {len(self.inter_data)}\n\n"
+        msg += f"**Données :** {len(self.inter_data)}\n\n"
         
         if self.smart_rules:
             msg += "**📜 Règles Actives (Top 3):**\n"
             for r in self.smart_rules:
                 msg += f"• Si **{r['trigger']}** (N-2) → Prédire **{r['predict']}** (x{r['count']})\n"
         else:
-            msg += "⚠️ Pas assez de données pour former des règles."
+            msg += "⚠️ Pas de règles."
             
         kb = {'inline_keyboard': [
-            [{'text': '✅ Activer / Mettre à jour', 'callback_data': 'inter_apply'}],
-            [{'text': '❌ Désactiver (Retour Statique)', 'callback_data': 'inter_default'}]
+            [{'text': '✅ Activer / Update', 'callback_data': 'inter_apply'}],
+            [{'text': '❌ Désactiver', 'callback_data': 'inter_default'}]
         ]}
         return msg, kb
 
-    # --- CŒUR DU SYSTÈME : PRÉDICTION ---
+    # --- Prédiction ---
     def should_predict(self, message: str) -> Tuple[bool, Optional[int], Optional[str]]:
         # 1. Vérif Périodique
         self.check_and_update_rules()
@@ -249,29 +243,28 @@ class CardPredictor:
         if '🕐' in message or '⏰' in message: return False, None, None
         if '✅' not in message and '🔰' not in message: return False, None, None
         
-        # Règle : Ecart de 3 jeux
         if self.last_predicted_game_number and (game_number - self.last_predicted_game_number < 3):
             return False, None, None
 
         # 4. Décision
         info = self.get_first_card_info(message)
         if not info: return False, None, None
-        first_card, _ = info # On ne garde que la carte complète pour le déclencheur
+        first_card, _ = info
         
         predicted_suit = None
 
-        # A. PRIORITÉ 1 : MODE INTER
+        # A. INTER (Priorité)
         if self.is_inter_mode_active and self.smart_rules:
             for rule in self.smart_rules:
                 if rule['trigger'] == first_card:
                     predicted_suit = rule['predict']
-                    logger.info(f"🔮 INTER: Déclencheur {first_card} -> Prédit {predicted_suit}")
+                    logger.info(f"🔮 INTER: {first_card} -> {predicted_suit}")
                     break
             
-        # B. PRIORITÉ 2 : MODE STATIQUE
+        # B. STATIQUE
         if not predicted_suit and first_card in STATIC_RULES:
             predicted_suit = STATIC_RULES[first_card]
-            logger.info(f"🔮 STATIQUE: Déclencheur {first_card} -> Prédit {predicted_suit}")
+            logger.info(f"🔮 STATIQUE: {first_card} -> {predicted_suit}")
 
         if predicted_suit:
             if self.last_prediction_time and time.time() < self.last_prediction_time + 30:
@@ -301,23 +294,20 @@ class CardPredictor:
         return txt
 
     def _verify_prediction_common(self, text: str, is_edited: bool = False) -> Optional[Dict]:
-        """Vérifie si une prédiction en attente est validée par le message actuel."""
         game_number = self.extract_game_number(text)
         if not game_number: return None
         
-        # Copie pour itération sûre
         for pred_game, pred_data in list(self.predictions.items()):
             if pred_data['status'] != 'pending': continue
             
             offset = game_number - int(pred_game)
             if not (0 <= offset <= 2): continue
             
-            # --- POINT CLÉ : Extraction de l'enseigne du résultat ---
             info = self.get_first_card_info(text)
-            found_suit = info[1] if info else None # info[1] est l'enseigne (ex: "♦️")
+            found_suit = info[1] if info else None
             predicted = pred_data['predicted_costume']
             
-            # 1. SUCCÈS : Enseigne correspond
+            # SUCCÈS
             if found_suit == predicted:
                 symbol = SYMBOL_MAP.get(offset, '✅')
                 msg = f"🔵{pred_game}🔵:Enseigne {predicted} statut :{symbol}"
@@ -327,23 +317,22 @@ class CardPredictor:
                 self._save_all_data()
                 return {'type': 'edit_message', 'predicted_game': str(pred_game), 'new_message': msg}
             
-            # 2. ÉCHEC : Après offset 2
+            # ÉCHEC (Après 2 tours)
             elif offset == 2:
                 msg = f"🔵{pred_game}🔵:Enseigne {predicted} statut :❌"
                 pred_data['status'] = 'lost'
                 pred_data['final_message'] = msg
                 
-                # Gestion Automatique
+                # Auto-Switch
                 if pred_data.get('is_inter'):
                     self.is_inter_mode_active = False 
-                    logger.info("❌ Échec INTER : Désactivation automatique.")
                 else:
                     self.consecutive_fails += 1
                     if self.consecutive_fails >= 2:
                         self.analyze_and_set_smart_rules(force_activate=True) 
-                        logger.info("⚠️ 2 Échecs Statiques : Activation automatique INTER.")
                 
                 self._save_all_data()
                 return {'type': 'edit_message', 'predicted_game': str(pred_game), 'new_message': msg}
                 
         return None
+
