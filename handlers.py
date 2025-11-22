@@ -9,17 +9,39 @@ from typing import Dict, Any, Optional, List, Tuple
 import requests 
 import time
 import json 
-from card_predictor import CardPredictor # Importation correcte
+# L'importation de CardPredictor est conservée (avec un fallback en cas d'erreur)
+try:
+    from card_predictor import CardPredictor
+except ImportError:
+    # Fallback minimal pour éviter le crash
+    class CardPredictor:
+        def __init__(self, telegram_message_sender=None): # Ajout de l'argument pour l'initialisation
+            self.target_channel_id = None
+            self.prediction_channel_id = None
+            self.is_inter_mode_active = False
+            self.inter_data = []
+            self.active_admin_chat_id = None # Ajout de la propriété
+        def set_channel_id(self, *args):
+            logger.error("CardPredictor non chargé, impossible de définir l'ID du canal.")
+            return False
+        def get_inter_status(self, *args): 
+            return "Système INTER non disponible.", None
+        def analyze_and_set_smart_rules(self, *args, **kwargs): 
+            logger.error("CardPredictor non chargé, impossible d'analyser les règles.")
+            return []
+        def _save_data(self, *args, **kwargs): pass
+        def _verify_prediction_common(self, *args, **kwargs): return None # Ajout de la méthode de vérification
+        def should_predict(self, *args): return False, None, None # Ajout de la méthode de prédiction
+        def make_prediction(self, *args): return "" # Ajout de la méthode de création de prédiction
+    logger.error("❌ Échec de l'importation de CardPredictor. Les fonctionnalités de prédiction seront désactivées.")
+    
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-# --- Limites de débit (Logique conservée) ---
+# Limites de débit (Logique conservée)
 user_message_counts = defaultdict(list)
 MAX_MESSAGES_PER_MINUTE = 30
 RATE_LIMIT_WINDOW = 60
 
-# --- Messages (À ajuster si vous avez des messages spécifiques) ---
+# Messages (Mise à jour des messages pour inclure /inter)
 WELCOME_MESSAGE = "👋 Bienvenue ! Je suis le Bot de Prédiction. Utilisez les commandes de configuration pour démarrer."
 CONFIG_PROMPT = "⚙️ Veuillez me dire à quel canal j'ai été ajouté :\n\n- Canal de **Source** (où les résultats arrivent)\n- Canal de **Prédiction** (où j'envoie les prédictions)"
 HELP_MESSAGE = "🤖 **COMMANDES DISPONIBLES :**\n\n`/config` : Configure les canaux source/prédiction.\n`/inter status` : Affiche l'état du mode intelligent (apprentissage et règles Top 3).\n`/inter activate` : Active le mode intelligent avec auto-adaptation/notification 30min.\n`/inter default` : Revient au mode statique."
@@ -45,7 +67,7 @@ class TelegramHandlers:
         return True
 
     def _send_message(self, chat_id: int, text: str, reply_to_message_id: Optional[int] = None, reply_markup: Optional[Dict] = None) -> Optional[int]:
-        """Envoie un message via l'API Telegram (utilisé par CardPredictor pour les notifications)."""
+        """Sends a message via the Telegram API (utilisé par CardPredictor pour les notifications)."""
         if not chat_id or not text: return None
         try:
             url = f"{self.base_url}/sendMessage"
@@ -66,6 +88,7 @@ class TelegramHandlers:
             return None
     
     def _edit_message(self, chat_id: int, message_id: int, text: str, reply_markup: Optional[Dict] = None):
+        """Edite un message existant."""
         if not chat_id or not message_id or not text: return
         try:
             url = f"{self.base_url}/editMessageText"
@@ -76,7 +99,7 @@ class TelegramHandlers:
             logger.error(f"❌ Erreur réseau lors de l'édition du message {message_id}: {e}")
 
     def _send_config_prompt(self, chat_id: int, chat_title: str):
-        # ... (Logique inchangée pour l'envoi du prompt de configuration) ...
+        """Envoie le message de configuration avec les boutons inline."""
         keyboard = {
             'inline_keyboard': [
                 [{'text': "1️⃣ Canal SOURCE (Résultats)", 'callback_data': 'config_source'}],
@@ -93,7 +116,7 @@ class TelegramHandlers:
         chat_id = message['chat']['id']
         
         if text.startswith('/config'):
-            if chat_id > 0: # C'est un chat privé, on ne peut pas configurer les canaux de cette façon.
+            if chat_id > 0:
                 self._send_message(chat_id, "⚠️ **ATTENTION** : La configuration des canaux doit être faite dans le canal de discussion où le bot est administrateur.")
                 return True
             
@@ -121,7 +144,6 @@ class TelegramHandlers:
                 
             elif action == 'status':
                 logger.info(f"🧠 Commande /inter status reçue de {chat_id}.")
-                # 'force_reanalyze=False' est important ici, on veut juste l'état
                 status_text, keyboard = self.card_predictor.get_inter_status(force_reanalyze=False) 
                 self._send_message(chat_id, status_text, reply_markup=keyboard)
 
@@ -144,8 +166,8 @@ class TelegramHandlers:
         data = callback_query['data']
         chat_id = callback_query['message']['chat']['id']
         message_id = callback_query['message']['message_id']
-
-        # Gère les actions INTERLIGNE venant des boutons de status
+        
+        # 🚨 Gestion des actions INTERLIGNE venant des boutons de status
         if data == 'inter_apply':
             self.card_predictor.analyze_and_set_smart_rules(chat_id=chat_id, force_activate=True)
             self._edit_message(chat_id, message_id, "✅ **MODE INTERLIGNE ACTIVÉ** : L'algorithme se mettra à jour et vous notifiera toutes les 30 minutes des changements de règles.")
@@ -190,7 +212,7 @@ class TelegramHandlers:
         # 1. Gère les Commandes
         if text.startswith('/'):
             if self._handle_command_config(message): return
-            if self._handle_command_inter(chat_id, text): return # 🚨 Appel à la gestion /inter
+            if self._handle_command_inter(chat_id, text): return # 🚨 Gestion de la commande /inter
             if self._handle_basic_commands(chat_id, text): return
             
         # 2. Logique de Prédiction/Vérification (Seulement dans les canaux)
@@ -200,7 +222,7 @@ class TelegramHandlers:
             if verification_result and verification_result['type'] == 'edit_message':
                 # On édite le message envoyé par le bot (via le message_id stocké)
                 predicted_game = verification_result['predicted_game']
-                prediction_message_id = self.card_predictor.predictions[predicted_game].get('message_id')
+                prediction_message_id = self.card_predictor.predictions.get(predicted_game, {}).get('message_id')
                 
                 if prediction_message_id and self.card_predictor.prediction_channel_id:
                     self._edit_message(
@@ -219,8 +241,9 @@ class TelegramHandlers:
                 
                 # Envoi et stockage de l'ID du message
                 message_id = self._send_message(self.card_predictor.prediction_channel_id, prediction_text)
-                if message_id and game_number + 2 in self.card_predictor.predictions:
-                    self.card_predictor.predictions[game_number + 2]['message_id'] = message_id
+                target_game = game_number + 2
+                if message_id and target_game in self.card_predictor.predictions:
+                    self.card_predictor.predictions[target_game]['message_id'] = message_id
                     self.card_predictor._save_data(self.card_predictor.predictions, 'predictions.json')
 
 
@@ -235,7 +258,7 @@ class TelegramHandlers:
             if verification_result and verification_result['type'] == 'edit_message':
                  # On édite le message envoyé par le bot (via le message_id stocké)
                 predicted_game = verification_result['predicted_game']
-                prediction_message_id = self.card_predictor.predictions[predicted_game].get('message_id')
+                prediction_message_id = self.card_predictor.predictions.get(predicted_game, {}).get('message_id')
                 
                 if prediction_message_id and self.card_predictor.prediction_channel_id:
                     self._edit_message(
@@ -270,9 +293,12 @@ class TelegramHandlers:
                 my_chat_member = update['my_chat_member']
                 # Si le statut change vers 'member' ou 'administrator'
                 new_status = my_chat_member['new_chat_member']['status']
+                
+                # Le token est dans self.token, la partie bot_id est avant le ":"
+                bot_id = int(self.token.split(':')[0]) 
+                
                 if new_status in ['member', 'administrator']:
-                    # Pour être sûr que c'est bien notre bot et non un autre
-                    bot_id = int(self.token.split(':')[0])
+                    # Vérifie que c'est bien notre bot
                     if my_chat_member['new_chat_member']['user']['id'] == bot_id:
                         chat_id = my_chat_member['chat']['id']
                         chat_title = my_chat_member['chat'].get('title', f'Chat ID: {chat_id}')
