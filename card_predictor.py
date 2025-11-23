@@ -164,7 +164,6 @@ class CardPredictor:
             v, c = details[0]
             return f"{v.upper()}{c}", c 
         return None
-
     # --- Logique INTER (Apprentissage N-2) ---
     def collect_inter_data(self, game_number: int, message: str):
         info = self.get_first_card_info(message)
@@ -331,7 +330,7 @@ class CardPredictor:
         self._save_all_data()
         return txt
 
-        def _verify_prediction_common(self, text: str, is_edited: bool = False) -> Optional[Dict]:
+    def _verify_prediction_common(self, text: str, is_edited: bool = False) -> Optional[Dict]:
         """Vérifie si une prédiction en attente est validée par le message actuel.
            MAJ: Vérifie TOUTES les cartes du premier groupe.
         """
@@ -393,3 +392,4 @@ class CardPredictor:
                 return {'type': 'edit_message', 'predicted_game': str(pred_game), 'new_message': msg}
                 
         return None
+    
