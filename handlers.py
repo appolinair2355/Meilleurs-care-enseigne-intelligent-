@@ -88,7 +88,7 @@ class TelegramHandlers:
         import shutil
 
         try:
-            self.send_message(chat_id, "📦 **Génération du package de déploiement Render.com (colu200.zip)...**")
+            self.send_message(chat_id, "📦 Génération du package de déploiement Render.com (cfini.zip)...")
 
             # Créer le dossier de déploiement dans le répertoire courant
             deploy_dir = 'telegram-bot-deploy-temp'
@@ -116,8 +116,19 @@ class TelegramHandlers:
                 with open(config_path, 'w') as f:
                     f.write(content)
 
+            # Vérifier et modifier render.yaml pour le port 10000
+            render_path = os.path.join(deploy_dir, 'render.yaml')
+            if os.path.exists(render_path):
+                with open(render_path, 'r') as f:
+                    content = f.read()
+                # S'assurer que le port est bien 10000
+                if 'value: "10000"' not in content:
+                    content = content.replace('value: "5000"', 'value: "10000"')
+                with open(render_path, 'w') as f:
+                    f.write(content)
+
             # Créer le fichier ZIP
-            zip_filename = 'colu200.zip'
+            zip_filename = 'cfini.zip'
 
             with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for root, dirs, files in os.walk(deploy_dir):
@@ -132,7 +143,7 @@ class TelegramHandlers:
                 files = {'document': (zip_filename, f, 'application/zip')}
                 data = {
                     'chat_id': chat_id,
-                    'caption': '📦 Package de déploiement Render.com - COLU200\n\n✅ Port configuré : 10000\n✅ Dernières modifications incluses\n✅ Fichiers : main.py, bot.py, handlers.py, card_predictor.py, config.py, requirements.txt, render.yaml\n\nInstructions :\n1. Uploadez colu200.zip sur Render.com\n2. Configurez vos variables environnement (BOT_TOKEN, WEBHOOK_URL, etc.)\n3. Déployez !\n\nNote : Toutes les dernières modifications de prédiction et vérification sont incluses.'
+                    'caption': '📦 Package de deploiement Render.com - CFINI\n\n✅ Port configure : 10000\n✅ Verification predictions corrigee\n✅ Extraction enseigne gagnante correcte\n✅ Mode INTER optimise\n✅ Fichiers : main.py, bot.py, handlers.py, card_predictor.py, config.py, requirements.txt, render.yaml\n\nInstructions :\n1. Uploadez cfini.zip sur Render.com\n2. Configurez vos variables environnement (BOT_TOKEN, WEBHOOK_URL)\n3. Deployez\n\nNote : Toutes les dernieres modifications sont incluses et testees.'
                 }
                 response = requests.post(url, data=data, files=files, timeout=60)
 
@@ -142,7 +153,7 @@ class TelegramHandlers:
                 os.remove(zip_filename)
 
             if response.json().get('ok'):
-                logger.info(f"✅ Package de déploiement colu200.zip envoyé avec succès")
+                logger.info(f"✅ Package de déploiement cfini.zip envoyé avec succès")
             else:
                 self.send_message(chat_id, f"❌ Erreur lors de l'envoi du package : {response.text}")
 

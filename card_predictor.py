@@ -247,6 +247,14 @@ class CardPredictor:
         msg += f"**Actif :** {'✅ OUI' if self.is_inter_mode_active else '❌ NON'}\n"
         msg += f"**Données collectées :** {len(self.inter_data)}\n\n"
         
+        # Aperçu des derniers déclencheurs collectés
+        if self.inter_data:
+            msg += "**🎯 Derniers déclencheurs collectés:**\n"
+            recent = sorted(self.inter_data, key=lambda x: x.get('date', ''), reverse=True)[:5]
+            for entry in recent:
+                msg += f"• N{entry['numero_declencheur']} ({entry['declencheur']}) → {entry['result_suit']}\n"
+            msg += "\n"
+        
         if self.smart_rules:
             msg += "**📜 Règles Actives (Top 3):**\n"
             for r in self.smart_rules:
@@ -347,9 +355,19 @@ class CardPredictor:
             offset = game_number - int(pred_game)
             if not (0 <= offset <= 2): continue
             
-            # --- Extraction de l'enseigne du résultat ---
-            info = self.get_first_card_info(text)
-            found_suit = info[1] if info else None
+            # --- Extraction de l'enseigne GAGNANTE ---
+            # Format: #N490. ✅9(J♠️3♦️6♣️) - 1(J♦️K♠️A♠️)
+            # L'enseigne gagnante est celle du premier groupe après ✅ ou 🔰
+            winner_match = re.search(r'[✅🔰](\d+)\(([^)]+)\)', text)
+            found_suit = None
+            
+            if winner_match:
+                winner_cards = winner_match.group(2)
+                # Extrait la première carte du groupe gagnant
+                card_details = self.extract_card_details(winner_cards)
+                if card_details:
+                    found_suit = card_details[0][1]  # L'enseigne de la première carte
+            
             predicted = pred_data['predicted_costume']
             
             # 1. SUCCÈS : Enseigne correspond
