@@ -33,9 +33,9 @@ class CardPredictor:
     def __init__(self, telegram_message_sender=None):
         
         # <<<<<<<<<<<<<<<< ZONE CRITIQUE À MODIFIER PAR L'UTILISATEUR >>>>>>>>>>>>>>>>
-        # ⚠️ REMPLACEZ LES ZÉROS PAR VOS VRAIS IDs DE CANAUX (ex: -1001234567890)
-        self.HARDCODED_SOURCE_ID = 0  # <--- ID du canal SOURCE/DÉCLENCHEUR
-        self.HARDCODED_PREDICTION_ID = 0 # <--- ID du canal PRÉDICTION/RÉSULTAT
+        # ⚠️ IDs DE CANAUX CONFIGURÉS
+        self.HARDCODED_SOURCE_ID = -1002682552255  # <--- ID du canal SOURCE/DÉCLENCHEUR
+        self.HARDCODED_PREDICTION_ID = -1003341134749 # <--- ID du canal PRÉDICTION/RÉSULTAT
         # <<<<<<<<<<<<<<<< FIN ZONE CRITIQUE >>>>>>>>>>>>>>>>
 
         # --- A. Chargement des Données ---
@@ -85,10 +85,10 @@ class CardPredictor:
     def _load_data(self, filename: str, is_set: bool = False, is_scalar: bool = False) -> Any:
         try:
             if not os.path.exists(filename):
-                return set() if is_set else (None if is_scalar else ({} if filename == 'channels_config.json' else []))
+                return set() if is_set else (None if is_scalar else ({} if filename in ['channels_config.json', 'predictions.json', 'sequential_history.json', 'smart_rules.json'] else []))
             with open(filename, 'r') as f:
                 content = f.read().strip()
-                if not content: return set() if is_set else (None if is_scalar else ({} if filename == 'channels_config.json' else []))
+                if not content: return set() if is_set else (None if is_scalar else ({} if filename in ['channels_config.json', 'predictions.json', 'sequential_history.json', 'smart_rules.json'] else []))
                 data = json.loads(content)
                 if is_set: return set(data)
                 # Conversion des clés str -> int pour les dictionnaires indexés par ID jeu
@@ -97,7 +97,7 @@ class CardPredictor:
                 return data
         except Exception as e:
             logger.error(f"⚠️ Erreur chargement {filename}: {e}")
-            return set() if is_set else (None if is_scalar else ({} if filename == 'channels_config.json' else []))
+            return set() if is_set else (None if is_scalar else ({} if filename in ['channels_config.json', 'predictions.json', 'sequential_history.json', 'smart_rules.json'] else []))
 
     def _save_data(self, data: Any, filename: str):
         try:
@@ -333,6 +333,10 @@ class CardPredictor:
 
     def _verify_prediction_common(self, text: str, is_edited: bool = False) -> Optional[Dict]:
         """Vérifie si une prédiction en attente est validée par le message actuel."""
+        # FILTRE CRITIQUE : Vérifier uniquement les messages finalisés
+        if '✅' not in text and '🔰' not in text:
+            return None
+            
         game_number = self.extract_game_number(text)
         if not game_number: return None
         

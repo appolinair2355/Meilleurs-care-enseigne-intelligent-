@@ -29,8 +29,7 @@ class Config:
         self.WEBHOOK_URL = self._determine_webhook_url()
         logger.info(f"🔗 Webhook URL configuré: {self.WEBHOOK_URL}")
 
-        # Port pour le serveur (utilise PORT env ou 10000 par défaut)
-        # C'est la ligne à vérifier / modifier !
+        # Port pour le serveur (utilise PORT env ou 5000 par défaut pour Replit)
         self.PORT = int(os.getenv('PORT') or 10000)
         
         # Canaux (Les vraies valeurs sont gérées par CardPredictor)

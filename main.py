@@ -84,10 +84,10 @@ def setup_webhook():
     except Exception as e:
         logger.error(f"❌ Erreur critique lors du setup du webhook: {e}")
 
-if __name__ == '__main__':
-    # Set up webhook on startup
-    setup_webhook()
+# Configure webhook au démarrage (fonctionne avec Gunicorn)
+setup_webhook()
 
+if __name__ == '__main__':
     # Get port from environment 
     port = config.PORT
 
