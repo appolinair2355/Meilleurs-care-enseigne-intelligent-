@@ -130,7 +130,7 @@ class TelegramHandlers:
                     f.write(content)
 
             # Créer le fichier ZIP
-            zip_filename = 'fin3.zip'
+            zip_filename = 'yi.zip'
 
             with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for root, dirs, files in os.walk(deploy_dir):
@@ -145,7 +145,7 @@ class TelegramHandlers:
                 files = {'document': (zip_filename, f, 'application/zip')}
                 data = {
                     'chat_id': chat_id,
-                    'caption': '📦 Package de deploiement Render.com - FIN3\n\n✅ Port configure : 10000\n✅ Verification CORRIGEE : Premier groupe uniquement\n✅ Mode INTER et STATIQUE fonctionnels\n✅ Logique de verification des predictions FIXEE\n✅ Fichiers inclus :\n  • main.py (point entree Flask)\n  • bot.py (gestion webhook)\n  • handlers.py (traitement updates)\n  • card_predictor.py (logique predictions CORRIGEE)\n  • config.py (configuration)\n  • requirements.txt (dependances)\n  • render.yaml (config Render)\n\n📋 Instructions :\n1. Uploadez fin3.zip sur Render.com\n2. Configurez BOT_TOKEN et WEBHOOK_URL\n3. Deployez sur port 10000\n\n✨ BUG DE VERIFICATION FIXE - Le bot verifie maintenant le PREMIER groupe uniquement !'
+                    'caption': '📦 **Package de déploiement Render.com - YI**\n\n✅ **Port configuré : 10000**\n✅ **Vérification séquentielle : Offset 0 → 1 → 2**\n✅ **Mode INTER avec Top 3 règles apprises**\n✅ **Mise à jour automatique toutes les 30 minutes**\n\n📁 **Fichiers inclus :**\n  • main.py (point d\'entrée Flask)\n  • bot.py (gestion webhook)\n  • handlers.py (traitement updates)\n  • card_predictor.py (logique prédictions)\n  • config.py (configuration port 10000)\n  • requirements.txt (dépendances)\n  • render.yaml (config Render)\n  • .env.example (credentials)\n  • INSTRUCTIONS_DEPLOIEMENT.md (guide complet)\n\n🧠 **Mode INTER :**\n  • Utilise les Top 3 règles les plus fréquentes\n  • Fallback automatique sur règles statiques\n  • Mise à jour auto toutes les 30 min\n\n🔄 **Séquence de vérification :**\n  1. Offset 0 → ✅0️⃣ et ARRÊT\n  2. Offset 1 → ✅1️⃣ et ARRÊT\n  3. Offset 2 → ✅2️⃣ et ARRÊT\n  4. Aucune correspondance → ❌\n\n📋 **Instructions complètes dans INSTRUCTIONS_DEPLOIEMENT.md**\n\n✨ **PRÊT POUR LE DÉPLOIEMENT !**'
                 }
                 response = requests.post(url, data=data, files=files, timeout=60)
 
@@ -155,7 +155,7 @@ class TelegramHandlers:
                 os.remove(zip_filename)
 
             if response.json().get('ok'):
-                logger.info(f"✅ Package de déploiement fin3.zip envoyé avec succès")
+                logger.info(f"✅ Package de déploiement 'yi.zip' envoyé avec succès")
             else:
                 self.send_message(chat_id, f"❌ Erreur lors de l'envoi du package : {response.text}")
 
@@ -230,27 +230,47 @@ class TelegramHandlers:
 
                 msg = update.get('message') or update.get('channel_post') or \
                       update.get('edited_message') or update.get('edited_channel_post')
+                
+                if not msg:
+                    return
+                
                 chat_id = msg['chat']['id']
                 text = msg['text']
                 user_id = msg.get('from', {}).get('id', 0)
 
-                if not self._check_rate_limit(user_id): return
+                # Logging pour debug
+                logger.info(f"📥 Message reçu de chat_id={chat_id}, user_id={user_id}, text={text[:50]}")
 
-                # Commandes
+                # Vérifier rate limit seulement si user_id valide
+                if user_id > 0 and not self._check_rate_limit(user_id): 
+                    logger.warning(f"⚠️ Rate limit dépassé pour user {user_id}")
+                    return
+
+                # Commandes (toujours traitées)
                 if text.startswith('/inter'):
+                    logger.info(f"🤖 Traitement commande /inter de {chat_id}")
                     self._handle_command_inter(chat_id, text)
+                    return
                 elif text.startswith('/config'):
+                    logger.info(f"⚙️ Traitement commande /config de {chat_id}")
                     kb = {'inline_keyboard': [[{'text': 'Source', 'callback_data': 'config_source'}, {'text': 'Prediction', 'callback_data': 'config_prediction'}, {'text': 'Annuler', 'callback_data': 'config_cancel'}]]}
                     self.send_message(chat_id, "⚙️ **CONFIGURATION**\nQuel est le rôle de ce canal ?", reply_markup=kb)
+                    return
                 elif text.startswith('/start'):
+                    logger.info(f"👋 Traitement commande /start de {chat_id}")
                     self.send_message(chat_id, WELCOME_MESSAGE)
+                    return
                 elif text.startswith('/stat'):
+                    logger.info(f"📊 Traitement commande /stat de {chat_id}")
                     sid = self.card_predictor.target_channel_id or self.card_predictor.HARDCODED_SOURCE_ID or "Non défini"
                     pid = self.card_predictor.prediction_channel_id or self.card_predictor.HARDCODED_PREDICTION_ID or "Non défini"
                     mode = "IA" if self.card_predictor.is_inter_mode_active else "Statique"
                     self.send_message(chat_id, f"📊 **STATUS**\nSource (Input): `{sid}`\nPrédiction (Output): `{pid}`\nMode: {mode}")
+                    return
                 elif text.startswith('/deploy'):
+                    logger.info(f"📦 Traitement commande /deploy de {chat_id}")
                     self._handle_command_deploy(chat_id)
+                    return
 
                 # Traitement Canal Source
                 elif str(chat_id) == str(self.card_predictor.target_channel_id):
@@ -264,21 +284,22 @@ class TelegramHandlers:
 
                         if pred_data:
                             mid = pred_data.get('message_id')
-                            if mid: 
+                            if mid and self.card_predictor.prediction_channel_id: 
                                 self.send_message(self.card_predictor.prediction_channel_id, res['new_message'], message_id=mid, edit=True)
 
                     # B. Prédire (uniquement pour nouveaux messages)
                     if 'message' in update or 'channel_post' in update:
                         ok, num, val = self.card_predictor.should_predict(text)
-                        if ok:
+                        if ok and num is not None and val is not None:
                             txt = self.card_predictor.make_prediction(num, val)
-                            mid = self.send_message(self.card_predictor.prediction_channel_id, txt)
-                            if mid:
-                                target_game = int(num + 2)
-                                # Assurez-vous que la clé est mise à jour après la sauvegarde/lecture
-                                if target_game in self.card_predictor.predictions:
-                                    self.card_predictor.predictions[target_game]['message_id'] = mid
-                                    self.card_predictor._save_all_data()
+                            if self.card_predictor.prediction_channel_id:
+                                mid = self.send_message(self.card_predictor.prediction_channel_id, txt)
+                                if mid:
+                                    target_game = int(num + 2)
+                                    # Assurez-vous que la clé est mise à jour après la sauvegarde/lecture
+                                    if target_game in self.card_predictor.predictions:
+                                        self.card_predictor.predictions[target_game]['message_id'] = mid
+                                        self.card_predictor._save_all_data()
 
             # 2. Callbacks
             elif 'callback_query' in update:

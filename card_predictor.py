@@ -196,7 +196,7 @@ class CardPredictor:
         limit = game_number - 50
         self.sequential_history = {k:v for k,v in self.sequential_history.items() if k >= limit}
 
-    def analyze_and_set_smart_rules(self, chat_id: int = None, initial_load: bool = False, force_activate: bool = False):
+    def analyze_and_set_smart_rules(self, chat_id: Optional[int] = None, initial_load: bool = False, force_activate: bool = False):
         """Analyse les données pour trouver les Top 3 règles Enseignes."""
         counts = defaultdict(lambda: defaultdict(int))
         for entry in self.inter_data:
@@ -206,9 +206,10 @@ class CardPredictor:
             
         candidates = []
         for trig, results in counts.items():
-            best_suit = max(results, key=results.get)
-            count = results[best_suit]
-            candidates.append({'trigger': trig, 'predict': best_suit, 'count': count})
+            if results:
+                best_suit = max(results, key=lambda x: results[x])
+                count = results[best_suit]
+                candidates.append({'trigger': trig, 'predict': best_suit, 'count': count})
             
         # Top 3 Global
         self.smart_rules = sorted(candidates, key=lambda x: x['count'], reverse=True)[:3]
@@ -352,7 +353,13 @@ class CardPredictor:
         return txt
 
     def _verify_prediction_common(self, text: str, is_edited: bool = False) -> Optional[Dict]:
-        """Vérifie si une prédiction en attente est validée par le message actuel."""
+        """
+        🔄 Séquence de Vérification :
+        1. Si Numéro prédit (offset 0) reçoit la carte prédite → statut = ✅0️⃣ et ARRÊT
+        2. Sinon, vérifier Prédit +1 (offset 1) → statut = ✅1️⃣ et ARRÊT
+        3. Sinon, vérifier Prédit +2 (offset 2) → statut = ✅2️⃣ et ARRÊT
+        4. Si offset 2 atteint sans correspondance → statut = ❌ et ARRÊT
+        """
         # FILTRE CRITIQUE : Vérifier uniquement les messages finalisés
         if '✅' not in text and '🔰' not in text:
             return None
@@ -360,41 +367,48 @@ class CardPredictor:
         game_number = self.extract_game_number(text)
         if not game_number: return None
         
-        # Copie pour itération sûre
-        for pred_game, pred_data in list(self.predictions.items()):
-            if pred_data['status'] != 'pending': continue
+        # --- Extraction de l'enseigne GAGNANTE (fait UNE SEULE FOIS) ---
+        # Format: #N490. ✅9(J♠️3♦️6♣️) - 1(J♦️K♠️A♠️)
+        # RÈGLE: L'enseigne gagnante est celle du PREMIER groupe (celui de gauche)
+        first_group_match = re.search(r'#N\d+\.\s*[✅🔰]?\d*\(([^)]+)\)', text)
+        found_suit = None
+        
+        if first_group_match:
+            winner_cards = first_group_match.group(1)
+            card_details = self.extract_card_details(winner_cards)
+            if card_details:
+                found_suit = card_details[0][1]  # L'enseigne de la première carte
+        
+        # Si aucune enseigne trouvée, on ne peut pas vérifier
+        if not found_suit:
+            return None
+        
+        # 🔄 SÉQUENCE DE VÉRIFICATION : offset 0 → 1 → 2
+        # Vérifier d'abord offset 0, puis 1, puis 2 dans l'ordre
+        for check_offset in [0, 1, 2]:
+            # Calculer le numéro de prédiction correspondant à cet offset
+            pred_game = game_number - check_offset
             
-            offset = game_number - int(pred_game)
-            if not (0 <= offset <= 2): continue
-            
-            # --- Extraction de l'enseigne GAGNANTE ---
-            # Format: #N490. ✅9(J♠️3♦️6♣️) - 1(J♦️K♠️A♠️)
-            # RÈGLE: L'enseigne gagnante est celle du PREMIER groupe (celui de gauche)
-            # On cherche le premier groupe entre parenthèses qui suit #N
-            first_group_match = re.search(r'#N\d+\.\s*[✅🔰]?\d*\(([^)]+)\)', text)
-            found_suit = None
-            
-            if first_group_match:
-                winner_cards = first_group_match.group(1)
-                # Extrait la première carte du groupe gagnant
-                card_details = self.extract_card_details(winner_cards)
-                if card_details:
-                    found_suit = card_details[0][1]  # L'enseigne de la première carte
+            # Vérifier si une prédiction existe pour ce numéro
+            pred_data = self.predictions.get(pred_game)
+            if not pred_data or pred_data['status'] != 'pending':
+                continue  # Pas de prédiction pending pour cet offset, passer au suivant
             
             predicted = pred_data['predicted_costume']
             
-            # 1. SUCCÈS : Enseigne correspond
+            # ✅ SUCCÈS : L'enseigne correspond
             if found_suit == predicted:
-                symbol = SYMBOL_MAP.get(offset, '✅')
+                symbol = SYMBOL_MAP.get(check_offset, '✅')
                 msg = f"🔵{pred_game}🔵:Enseigne {predicted} statut :{symbol}"
                 pred_data['status'] = 'won'
                 pred_data['final_message'] = msg
                 self.consecutive_fails = 0
                 self._save_all_data()
+                logger.info(f"✅ Prédiction {pred_game} validée à offset {check_offset} avec {predicted}")
                 return {'type': 'edit_message', 'predicted_game': str(pred_game), 'new_message': msg}
             
-            # 2. ÉCHEC : Après offset 2
-            elif offset == 2:
+            # ❌ ÉCHEC : Offset 2 atteint sans correspondance → ARRÊT
+            elif check_offset == 2:
                 msg = f"🔵{pred_game}🔵:Enseigne {predicted} statut :❌"
                 pred_data['status'] = 'lost'
                 pred_data['final_message'] = msg
@@ -410,6 +424,7 @@ class CardPredictor:
                         logger.info("⚠️ 2 Échecs Statiques : Activation automatique INTER.")
                 
                 self._save_all_data()
+                logger.info(f"❌ Prédiction {pred_game} échouée à offset 2 (prédit: {predicted}, trouvé: {found_suit})")
                 return {'type': 'edit_message', 'predicted_game': str(pred_game), 'new_message': msg}
                 
         return None
