@@ -47,7 +47,7 @@ class TelegramHandlers:
     def __init__(self, bot_token: str):
         self.bot_token = bot_token
         self.base_url = f"https://api.telegram.org/bot{bot_token}"
-
+        
         if CardPredictor:
             # On passe la fonction d'envoi pour les notifs INTER
             self.card_predictor = CardPredictor(telegram_message_sender=self.send_message)
@@ -63,10 +63,10 @@ class TelegramHandlers:
 
     def send_message(self, chat_id: int, text: str, parse_mode='Markdown', message_id: Optional[int] = None, edit=False, reply_markup: Optional[Dict] = None) -> Optional[int]:
         if not chat_id or not text: return None
-
+        
         method = 'editMessageText' if (message_id or edit) else 'sendMessage'
         payload = {'chat_id': chat_id, 'text': text, 'parse_mode': parse_mode}
-
+        
         if message_id: payload['message_id'] = message_id
         if reply_markup: 
             payload['reply_markup'] = json.dumps(reply_markup) if isinstance(reply_markup, dict) else reply_markup
@@ -85,109 +85,92 @@ class TelegramHandlers:
     def _handle_command_deploy(self, chat_id: int):
         import zipfile
         import os
+        import tempfile
         import shutil
-
+        
         try:
-            self.send_message(chat_id, "📦 Génération du package Render.com (fina10.zip) - Port 10000...")
-
-            # Créer le dossier de déploiement dans le répertoire courant
-            deploy_dir = 'telegram-bot-deploy-temp'
-            if os.path.exists(deploy_dir):
-                shutil.rmtree(deploy_dir)
-            os.makedirs(deploy_dir)
-
-            # Fichiers à inclure (TOUS les fichiers nécessaires)
-            files_to_copy = [
-                'main.py', 'bot.py', 'handlers.py', 'card_predictor.py', 
-                'config.py', 'requirements.txt', 'render.yaml'
-            ]
-
-            # Copier les fichiers
-            for filename in files_to_copy:
-                if os.path.exists(filename):
-                    shutil.copy(filename, deploy_dir)
+            self.send_message(chat_id, "📦 **Génération du package de déploiement Render.com...**")
+            
+            # Créer un dossier temporaire
+            with tempfile.TemporaryDirectory() as tmpdir:
+                deploy_dir = os.path.join(tmpdir, 'telegram-bot-deploy')
+                os.makedirs(deploy_dir)
+                
+                # Fichiers à inclure
+                files_to_copy = [
+                    'main.py', 'bot.py', 'handlers.py', 'card_predictor.py', 
+                    'config.py', 'requirements.txt', 'render.yaml'
+                ]
+                
+                # Copier les fichiers
+                for filename in files_to_copy:
+                    if os.path.exists(filename):
+                        shutil.copy(filename, deploy_dir)
+                
+                # Modifier config.py pour le port 10000
+                config_path = os.path.join(deploy_dir, 'config.py')
+                if os.path.exists(config_path):
+                    with open(config_path, 'r') as f:
+                        content = f.read()
+                    content = content.replace('int(os.getenv(\'PORT\') or 5000)', 'int(os.getenv(\'PORT\') or 10000)')
+                    with open(config_path, 'w') as f:
+                        f.write(content)
+                
+                # Créer le fichier ZIP
+                zip_filename = 'render_deployment.zip'
+                zip_path = os.path.join(tmpdir, zip_filename)
+                
+                with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    for root, dirs, files in os.walk(deploy_dir):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            arcname = os.path.relpath(file_path, deploy_dir)
+                            zipf.write(file_path, arcname)
+                
+                # Envoyer le fichier
+                url = f"{self.base_url}/sendDocument"
+                with open(zip_path, 'rb') as f:
+                    files = {'document': (zip_filename, f, 'application/zip')}
+                    data = {
+                        'chat_id': chat_id,
+                        'caption': '📦 **Package de déploiement Render.com**\n\n✅ Port configuré : 10000\n✅ Fichiers inclus : main.py, bot.py, handlers.py, card_predictor.py, config.py, requirements.txt, render.yaml\n\n**Instructions :**\n1. Uploadez ce fichier sur Render.com\n2. Configurez vos variables d\'environnement (BOT_TOKEN, etc.)\n3. Déployez !',
+                        'parse_mode': 'Markdown'
+                    }
+                    response = requests.post(url, data=data, files=files, timeout=60)
+                
+                if response.json().get('ok'):
+                    logger.info(f"✅ Package de déploiement envoyé avec succès")
                 else:
-                    logger.warning(f"⚠️ Fichier {filename} non trouvé, ignoré")
-
-            # Modifier config.py pour le port 10000
-            config_path = os.path.join(deploy_dir, 'config.py')
-            if os.path.exists(config_path):
-                with open(config_path, 'r') as f:
-                    content = f.read()
-                content = content.replace('int(os.getenv(\'PORT\') or 5000)', 'int(os.getenv(\'PORT\') or 10000)')
-                with open(config_path, 'w') as f:
-                    f.write(content)
-
-            # Vérifier et modifier render.yaml pour le port 10000
-            render_path = os.path.join(deploy_dir, 'render.yaml')
-            if os.path.exists(render_path):
-                with open(render_path, 'r') as f:
-                    content = f.read()
-                # S'assurer que le port est bien 10000
-                if 'value: "10000"' not in content:
-                    content = content.replace('value: "5000"', 'value: "10000"')
-                with open(render_path, 'w') as f:
-                    f.write(content)
-
-            # Créer le fichier ZIP
-            zip_filename = 'fina10.zip'
-
-            with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                for root, dirs, files in os.walk(deploy_dir):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        arcname = os.path.relpath(file_path, deploy_dir)
-                        zipf.write(file_path, arcname)
-
-            # Envoyer le fichier
-            url = f"{self.base_url}/sendDocument"
-            with open(zip_filename, 'rb') as f:
-                files = {'document': (zip_filename, f, 'application/zip')}
-                data = {
-                    'chat_id': chat_id,
-                    'caption': '📦 Package Render\\.com \\- FINA10\n\n✅ Port 10000 configuré\n✅ Vérification séquentielle optimisée\n✅ Offset 0→1→2 avec ARRÊT automatique\n✅ Mode INTER Top 3\n\n🔄 Séquence de Vérification:\n• Numéro prédit \\+ offset 0 → ✅0️⃣ puis ARRÊT\n• Si non → offset \\+1 → ✅1️⃣ puis ARRÊT\n• Si non → offset \\+2 → ✅2️⃣ puis ARRÊT\n• Si non → ❌ puis ARRÊT\n\n📁 Fichiers:\nmain\\.py, bot\\.py, handlers\\.py\ncard\\_predictor\\.py\nconfig\\.py, requirements\\.txt\nrender\\.yaml\n\n⚙️ CONFIG RENDER\\.COM\n\nVariables env:\nBOT\\_TOKEN\nWEBHOOK\\_URL\nADMIN\\_ID\\=1190237801\nPORT\\=10000\n\nAprès déploiement:\n1\\. Récupérez URL Render\n2\\. Configurez webhook\n\n✨ PRÊT RENDER\\.COM\\!',
-                    'parse_mode': 'MarkdownV2'
-                }
-                response = requests.post(url, data=data, files=files, timeout=60)
-
-            # Nettoyer les fichiers temporaires
-            shutil.rmtree(deploy_dir)
-            if os.path.exists(zip_filename):
-                os.remove(zip_filename)
-
-            if response.json().get('ok'):
-                logger.info(f"✅ Package de déploiement 'fina10.zip' envoyé avec succès pour Render.com")
-            else:
-                self.send_message(chat_id, f"❌ Erreur lors de l'envoi du package : {response.text}")
-
+                    self.send_message(chat_id, f"❌ Erreur lors de l'envoi du package : {response.text}")
+                    
         except Exception as e:
             logger.error(f"Erreur lors de la création du package de déploiement : {e}")
-            self.send_message(chat_id, f"❌ Erreur : {str(e)}")
+            self.send_message(chat_id, f"❌ Erreur lors de la génération du package : {str(e)}")
 
     # --- GESTION COMMANDE /inter ---
     def _handle_command_inter(self, chat_id: int, text: str):
         if not self.card_predictor: 
             self.send_message(chat_id, "❌ Le moteur de prédiction n'est pas chargé.")
             return
-
+            
         parts = text.lower().split()
-
+        
         # Par défaut 'status' si pas d'argument
         action = parts[1] if len(parts) > 1 else 'status'
-
+        
         if action == 'activate':
             self.card_predictor.analyze_and_set_smart_rules(chat_id=chat_id, force_activate=True)
             self.send_message(chat_id, "✅ **MODE INTER ACTIVÉ**\nAnalyse des Enseignes (♠️♥️♦️♣️) en cours...")
-
+        
         elif action == 'default':
             self.card_predictor.is_inter_mode_active = False
             self.card_predictor._save_all_data()
             self.send_message(chat_id, "❌ **MODE INTER DÉSACTIVÉ**\nRetour aux règles statiques.")
-
+            
         elif action == 'status':
             msg, kb = self.card_predictor.get_inter_status()
             self.send_message(chat_id, msg, reply_markup=kb)
-
+        
         else:
             self.send_message(chat_id, HELP_MESSAGE)
 
@@ -196,19 +179,19 @@ class TelegramHandlers:
         data = update_obj['data']
         chat_id = update_obj['message']['chat']['id']
         msg_id = update_obj['message']['message_id']
-
+        
         if not self.card_predictor: return
 
         # Actions INTER
         if data == 'inter_apply':
             self.card_predictor.analyze_and_set_smart_rules(chat_id=chat_id, force_activate=True)
             self.send_message(chat_id, "✅ Mode Intelligent Appliqué !", message_id=msg_id, edit=True)
-
+        
         elif data == 'inter_default':
             self.card_predictor.is_inter_mode_active = False
             self.card_predictor._save_all_data()
             self.send_message(chat_id, "❌ Mode Statique réactivé.", message_id=msg_id, edit=True)
-
+            
         # Actions CONFIG
         elif data.startswith('config_'):
             if 'cancel' in data:
@@ -223,60 +206,36 @@ class TelegramHandlers:
         try:
             if not self.card_predictor: return # Sortie rapide si le moteur de prédiction n'est pas là
 
-            # 1. Messages Texte / Channel Post / Messages Édités
-            if ('message' in update and 'text' in update['message']) or \
-               ('channel_post' in update and 'text' in update['channel_post']) or \
-               ('edited_message' in update and 'text' in update['edited_message']) or \
-               ('edited_channel_post' in update and 'text' in update['edited_channel_post']):
-
-                msg = update.get('message') or update.get('channel_post') or \
-                      update.get('edited_message') or update.get('edited_channel_post')
+            # 1. Messages Texte / Channel Post
+            if ('message' in update and 'text' in update['message']) or ('channel_post' in update and 'text' in update['channel_post']):
                 
-                if not msg:
-                    return
-                
+                msg = update.get('message') or update.get('channel_post')
                 chat_id = msg['chat']['id']
                 text = msg['text']
                 user_id = msg.get('from', {}).get('id', 0)
 
-                # Logging pour debug
-                logger.info(f"📥 Message reçu de chat_id={chat_id}, user_id={user_id}, text={text[:50]}")
-
-                # Vérifier rate limit seulement si user_id valide
-                if user_id > 0 and not self._check_rate_limit(user_id): 
-                    logger.warning(f"⚠️ Rate limit dépassé pour user {user_id}")
-                    return
-
-                # Commandes (toujours traitées)
+                if not self._check_rate_limit(user_id): return
+                
+                # Commandes
                 if text.startswith('/inter'):
-                    logger.info(f"🤖 Traitement commande /inter de {chat_id}")
                     self._handle_command_inter(chat_id, text)
-                    return
                 elif text.startswith('/config'):
-                    logger.info(f"⚙️ Traitement commande /config de {chat_id}")
                     kb = {'inline_keyboard': [[{'text': 'Source', 'callback_data': 'config_source'}, {'text': 'Prediction', 'callback_data': 'config_prediction'}, {'text': 'Annuler', 'callback_data': 'config_cancel'}]]}
                     self.send_message(chat_id, "⚙️ **CONFIGURATION**\nQuel est le rôle de ce canal ?", reply_markup=kb)
-                    return
                 elif text.startswith('/start'):
-                    logger.info(f"👋 Traitement commande /start de {chat_id}")
                     self.send_message(chat_id, WELCOME_MESSAGE)
-                    return
                 elif text.startswith('/stat'):
-                    logger.info(f"📊 Traitement commande /stat de {chat_id}")
                     sid = self.card_predictor.target_channel_id or self.card_predictor.HARDCODED_SOURCE_ID or "Non défini"
                     pid = self.card_predictor.prediction_channel_id or self.card_predictor.HARDCODED_PREDICTION_ID or "Non défini"
                     mode = "IA" if self.card_predictor.is_inter_mode_active else "Statique"
                     self.send_message(chat_id, f"📊 **STATUS**\nSource (Input): `{sid}`\nPrédiction (Output): `{pid}`\nMode: {mode}")
-                    return
                 elif text.startswith('/deploy'):
-                    logger.info(f"📦 Traitement commande /deploy de {chat_id}")
                     self._handle_command_deploy(chat_id)
-                    return
-
+                
                 # Traitement Canal Source
                 elif str(chat_id) == str(self.card_predictor.target_channel_id):
-
-                    # A. Vérifier (pour messages normaux ET édités)
+                    
+                    # A. Vérifier
                     res = self.card_predictor._verify_prediction_common(text)
                     if res and res['type'] == 'edit_message':
                         pred_game_str = res['predicted_game']
@@ -285,27 +244,25 @@ class TelegramHandlers:
 
                         if pred_data:
                             mid = pred_data.get('message_id')
-                            if mid and self.card_predictor.prediction_channel_id: 
+                            if mid: 
                                 self.send_message(self.card_predictor.prediction_channel_id, res['new_message'], message_id=mid, edit=True)
-
-                    # B. Prédire (uniquement pour nouveaux messages)
-                    if 'message' in update or 'channel_post' in update:
-                        ok, num, val = self.card_predictor.should_predict(text)
-                        if ok and num is not None and val is not None:
-                            txt = self.card_predictor.make_prediction(num, val)
-                            if self.card_predictor.prediction_channel_id:
-                                mid = self.send_message(self.card_predictor.prediction_channel_id, txt)
-                                if mid:
-                                    target_game = int(num + 2)
-                                    # Assurez-vous que la clé est mise à jour après la sauvegarde/lecture
-                                    if target_game in self.card_predictor.predictions:
-                                        self.card_predictor.predictions[target_game]['message_id'] = mid
-                                        self.card_predictor._save_all_data()
+                    
+                    # B. Prédire
+                    ok, num, val = self.card_predictor.should_predict(text)
+                    if ok:
+                        txt = self.card_predictor.make_prediction(num, val)
+                        mid = self.send_message(self.card_predictor.prediction_channel_id, txt)
+                        if mid:
+                            target_game = int(num + 2)
+                            # Assurez-vous que la clé est mise à jour après la sauvegarde/lecture
+                            if target_game in self.card_predictor.predictions:
+                                self.card_predictor.predictions[target_game]['message_id'] = mid
+                                self.card_predictor._save_all_data()
 
             # 2. Callbacks
             elif 'callback_query' in update:
                 self._handle_callback_query(update['callback_query'])
-
+            
             # 3. Ajout au groupe
             elif 'my_chat_member' in update:
                 # Logique pour déclencher le /config quand le bot est ajouté
@@ -319,3 +276,4 @@ class TelegramHandlers:
 
         except Exception as e:
             logger.error(f"Update error: {e}")
+        

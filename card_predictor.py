@@ -196,7 +196,7 @@ class CardPredictor:
         limit = game_number - 50
         self.sequential_history = {k:v for k,v in self.sequential_history.items() if k >= limit}
 
-    def analyze_and_set_smart_rules(self, chat_id: Optional[int] = None, initial_load: bool = False, force_activate: bool = False):
+    def analyze_and_set_smart_rules(self, chat_id: int = None, initial_load: bool = False, force_activate: bool = False):
         """Analyse les données pour trouver les Top 3 règles Enseignes."""
         counts = defaultdict(lambda: defaultdict(int))
         for entry in self.inter_data:
@@ -206,10 +206,9 @@ class CardPredictor:
             
         candidates = []
         for trig, results in counts.items():
-            if results:
-                best_suit = max(results, key=lambda x: results[x])
-                count = results[best_suit]
-                candidates.append({'trigger': trig, 'predict': best_suit, 'count': count})
+            best_suit = max(results, key=results.get)
+            count = results[best_suit]
+            candidates.append({'trigger': trig, 'predict': best_suit, 'count': count})
             
         # Top 3 Global
         self.smart_rules = sorted(candidates, key=lambda x: x['count'], reverse=True)[:3]
@@ -248,14 +247,6 @@ class CardPredictor:
         msg += f"**Actif :** {'✅ OUI' if self.is_inter_mode_active else '❌ NON'}\n"
         msg += f"**Données collectées :** {len(self.inter_data)}\n\n"
         
-        # Aperçu des derniers déclencheurs collectés
-        if self.inter_data:
-            msg += "**🎯 Derniers déclencheurs collectés:**\n"
-            recent = sorted(self.inter_data, key=lambda x: x.get('date', ''), reverse=True)[:5]
-            for entry in recent:
-                msg += f"• N{entry['numero_declencheur']} ({entry['declencheur']}) → {entry['result_suit']}\n"
-            msg += "\n"
-        
         if self.smart_rules:
             msg += "**📜 Règles Actives (Top 3):**\n"
             for r in self.smart_rules:
@@ -280,32 +271,24 @@ class CardPredictor:
             return False, None, None
             
         game_number = self.extract_game_number(message)
-        if not game_number: 
-            return False, None, None
+        if not game_number: return False, None, None
         
-        # 2. Filtres : ignorer les messages de timing
-        if '🕐' in message or '⏰' in message: 
-            return False, None, None
-        
-        # 3. Extraire la première carte AVANT de vérifier ✅/🔰
-        info = self.get_first_card_info(message)
-        if not info: 
-            return False, None, None
-        first_card, suit = info
-        
-        # 4. Collecte INTER (Démarre la collecte puisque l'ID est connu)
+        # 2. Collecte INTER (Démarre la collecte puisque l'ID est connu)
         self.collect_inter_data(game_number, message)
         
-        # 5. Vérifier que le message est finalisé (✅ ou 🔰)
-        if '✅' not in message and '🔰' not in message: 
-            return False, None, None
+        # 3. Filtres
+        if '🕐' in message or '⏰' in message: return False, None, None
+        if '✅' not in message and '🔰' not in message: return False, None, None
         
-        # 6. Règle : Ecart de 3 jeux minimum
+        # Règle : Ecart de 3 jeux
         if self.last_predicted_game_number and (game_number - self.last_predicted_game_number < 3):
-            logger.info(f"⏭️ Skip prédiction : Écart trop court (dernier: {self.last_predicted_game_number}, actuel: {game_number})")
             return False, None, None
 
-        # 7. Décision de prédiction
+        # 4. Décision
+        info = self.get_first_card_info(message)
+        if not info: return False, None, None
+        first_card, _ = info # On ne garde que la carte complète pour le déclencheur
+        
         predicted_suit = None
 
         # A. PRIORITÉ 1 : MODE INTER
@@ -321,26 +304,16 @@ class CardPredictor:
             predicted_suit = STATIC_RULES[first_card]
             logger.info(f"🔮 STATIQUE: Déclencheur {first_card} -> Prédit {predicted_suit}")
 
-        # 8. Si une prédiction est trouvée, vérifier le cooldown
         if predicted_suit:
-            time_since_last = time.time() - self.last_prediction_time if self.last_prediction_time else 999
             if self.last_prediction_time and time.time() < self.last_prediction_time + 30:
-                logger.warning(f"⏳ COOLDOWN ACTIF: {int(30 - time_since_last)}s restantes | Jeu {game_number} ({first_card}) → {predicted_suit} IGNORÉ")
-                return False, None, None
-            
-            # Vérification supplémentaire de l'écart
-            if self.last_predicted_game_number and (game_number - self.last_predicted_game_number < 3):
-                logger.warning(f"⏭️ ÉCART INSUFFISANT: Dernier={self.last_predicted_game_number}, Actuel={game_number}, Diff={game_number - self.last_predicted_game_number} | Jeu {game_number} ({first_card}) → {predicted_suit} IGNORÉ")
                 return False, None, None
                 
             self.last_prediction_time = time.time()
             self.last_predicted_game_number = game_number
             self.consecutive_fails = 0
             self._save_all_data()
-            logger.info(f"✅ PRÉDICTION CRÉÉE: Jeu {game_number} ({first_card}) → Prédire {predicted_suit} pour jeu {game_number + 2}")
             return True, game_number, predicted_suit
 
-        logger.info(f"❌ Aucune règle trouvée pour {first_card}")
         return False, None, None
 
     def make_prediction(self, game_number: int, suit: str) -> str:
@@ -359,100 +332,40 @@ class CardPredictor:
         return txt
 
     def _verify_prediction_common(self, text: str, is_edited: bool = False) -> Optional[Dict]:
-        """
-        🔄 Séquence de Vérification Séquentielle :
-        1. Si Numéro prédit (offset 0) reçoit la carte prédite → statut = ✅0️⃣ et ARRÊT
-        2. Sinon, vérifier Prédit +1 (offset 1) → statut = ✅1️⃣ et ARRÊT
-        3. Sinon, vérifier Prédit +2 (offset 2) → statut = ✅2️⃣ et ARRÊT
-        4. Si offset 2 atteint sans correspondance → statut = ❌ et ARRÊT
-        """
+        """Vérifie si une prédiction en attente est validée par le message actuel."""
         game_number = self.extract_game_number(text)
-        if not game_number: 
-            return None
+        if not game_number: return None
         
-        # Vérifier que le message est finalisé (✅ ou 🔰)
-        if '✅' not in text and '🔰' not in text:
-            return None
-        
-        # --- Extraction de l'enseigne du PREMIER groupe ---
-        # Format: #N930. 0(J♥️10♥️J♠️) - ✅1(K♣️K♣️A♣️) #T1
-        # On veut l'enseigne du premier groupe: J♠️
-        first_group_match = re.search(r'#N\d+\.\s*[✅🔰]?\d*\(([^)]+)\)', text)
-        found_suit = None
-        
-        if first_group_match:
-            winner_cards = first_group_match.group(1)
-            card_details = self.extract_card_details(winner_cards)
-            if card_details:
-                # Prendre l'enseigne de la PREMIÈRE carte du premier groupe
-                found_suit = card_details[0][1]
-        
-        # Si aucune enseigne trouvée, impossible de vérifier
-        if not found_suit:
-            return None
-        
-        # 🔄 VÉRIFICATION SÉQUENTIELLE : offset 0 → 1 → 2
-        # On vérifie UNE SEULE prédiction à la fois, dans l'ordre
-        
-        # 1️⃣ OFFSET 0 : Vérifier si game_number correspond à une prédiction
-        pred_game_0 = game_number
-        pred_data_0 = self.predictions.get(pred_game_0)
-        
-        if pred_data_0 and pred_data_0['status'] == 'pending':
-            predicted = pred_data_0['predicted_costume']
+        # Copie pour itération sûre
+        for pred_game, pred_data in list(self.predictions.items()):
+            if pred_data['status'] != 'pending': continue
             
-            # ✅ SUCCÈS à offset 0
+            offset = game_number - int(pred_game)
+            if not (0 <= offset <= 2): continue
+            
+            # --- Extraction de l'enseigne du résultat ---
+            info = self.get_first_card_info(text)
+            found_suit = info[1] if info else None
+            predicted = pred_data['predicted_costume']
+            
+            # 1. SUCCÈS : Enseigne correspond
             if found_suit == predicted:
-                msg = f"🔵{pred_game_0}🔵:Enseigne {predicted} statut :✅0️⃣"
-                pred_data_0['status'] = 'won'
-                pred_data_0['final_message'] = msg
+                symbol = SYMBOL_MAP.get(offset, '✅')
+                msg = f"🔵{pred_game}🔵:Enseigne {predicted} statut :{symbol}"
+                pred_data['status'] = 'won'
+                pred_data['final_message'] = msg
                 self.consecutive_fails = 0
                 self._save_all_data()
-                logger.info(f"✅ Prédiction {pred_game_0} validée à offset 0 avec {predicted}")
-                return {'type': 'edit_message', 'predicted_game': str(pred_game_0), 'new_message': msg}
-        
-        # 2️⃣ OFFSET 1 : Vérifier game_number - 1
-        pred_game_1 = game_number - 1
-        pred_data_1 = self.predictions.get(pred_game_1)
-        
-        if pred_data_1 and pred_data_1['status'] == 'pending':
-            predicted = pred_data_1['predicted_costume']
+                return {'type': 'edit_message', 'predicted_game': str(pred_game), 'new_message': msg}
             
-            # ✅ SUCCÈS à offset 1
-            if found_suit == predicted:
-                msg = f"🔵{pred_game_1}🔵:Enseigne {predicted} statut :✅1️⃣"
-                pred_data_1['status'] = 'won'
-                pred_data_1['final_message'] = msg
-                self.consecutive_fails = 0
-                self._save_all_data()
-                logger.info(f"✅ Prédiction {pred_game_1} validée à offset 1 avec {predicted}")
-                return {'type': 'edit_message', 'predicted_game': str(pred_game_1), 'new_message': msg}
-        
-        # 3️⃣ OFFSET 2 : Vérifier game_number - 2
-        pred_game_2 = game_number - 2
-        pred_data_2 = self.predictions.get(pred_game_2)
-        
-        if pred_data_2 and pred_data_2['status'] == 'pending':
-            predicted = pred_data_2['predicted_costume']
-            
-            # ✅ SUCCÈS à offset 2
-            if found_suit == predicted:
-                msg = f"🔵{pred_game_2}🔵:Enseigne {predicted} statut :✅2️⃣"
-                pred_data_2['status'] = 'won'
-                pred_data_2['final_message'] = msg
-                self.consecutive_fails = 0
-                self._save_all_data()
-                logger.info(f"✅ Prédiction {pred_game_2} validée à offset 2 avec {predicted}")
-                return {'type': 'edit_message', 'predicted_game': str(pred_game_2), 'new_message': msg}
-            
-            # ❌ ÉCHEC : Offset 2 atteint sans correspondance
-            else:
-                msg = f"🔵{pred_game_2}🔵:Enseigne {predicted} statut :❌"
-                pred_data_2['status'] = 'lost'
-                pred_data_2['final_message'] = msg
+            # 2. ÉCHEC : Après offset 2
+            elif offset == 2:
+                msg = f"🔵{pred_game}🔵:Enseigne {predicted} statut :❌"
+                pred_data['status'] = 'lost'
+                pred_data['final_message'] = msg
                 
                 # Gestion Automatique
-                if pred_data_2.get('is_inter'):
+                if pred_data.get('is_inter'):
                     self.is_inter_mode_active = False 
                     logger.info("❌ Échec INTER : Désactivation automatique.")
                 else:
@@ -462,7 +375,6 @@ class CardPredictor:
                         logger.info("⚠️ 2 Échecs Statiques : Activation automatique INTER.")
                 
                 self._save_all_data()
-                logger.info(f"❌ Prédiction {pred_game_2} échouée à offset 2 (prédit: {predicted}, trouvé: {found_suit})")
-                return {'type': 'edit_message', 'predicted_game': str(pred_game_2), 'new_message': msg}
+                return {'type': 'edit_message', 'predicted_game': str(pred_game), 'new_message': msg}
                 
         return None
