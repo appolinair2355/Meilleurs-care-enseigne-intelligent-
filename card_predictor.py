@@ -360,18 +360,23 @@ class CardPredictor:
 
     def _verify_prediction_common(self, text: str, is_edited: bool = False) -> Optional[Dict]:
         """
-        🔄 Séquence de Vérification :
+        🔄 Séquence de Vérification Séquentielle :
         1. Si Numéro prédit (offset 0) reçoit la carte prédite → statut = ✅0️⃣ et ARRÊT
         2. Sinon, vérifier Prédit +1 (offset 1) → statut = ✅1️⃣ et ARRÊT
         3. Sinon, vérifier Prédit +2 (offset 2) → statut = ✅2️⃣ et ARRÊT
         4. Si offset 2 atteint sans correspondance → statut = ❌ et ARRÊT
         """
         game_number = self.extract_game_number(text)
-        if not game_number: return None
+        if not game_number: 
+            return None
         
-        # --- Extraction de l'enseigne GAGNANTE (fait UNE SEULE FOIS) ---
-        # Format: #N490. ✅9(J♠️3♦️6♣️) - 1(J♦️K♠️A♠️)
-        # RÈGLE: L'enseigne gagnante est celle du PREMIER groupe (celui de gauche)
+        # Vérifier que le message est finalisé (✅ ou 🔰)
+        if '✅' not in text and '🔰' not in text:
+            return None
+        
+        # --- Extraction de l'enseigne du PREMIER groupe ---
+        # Format: #N930. 0(J♥️10♥️J♠️) - ✅1(K♣️K♣️A♣️) #T1
+        # On veut l'enseigne du premier groupe: J♠️
         first_group_match = re.search(r'#N\d+\.\s*[✅🔰]?\d*\(([^)]+)\)', text)
         found_suit = None
         
@@ -379,44 +384,75 @@ class CardPredictor:
             winner_cards = first_group_match.group(1)
             card_details = self.extract_card_details(winner_cards)
             if card_details:
-                found_suit = card_details[0][1]  # L'enseigne de la première carte
+                # Prendre l'enseigne de la PREMIÈRE carte du premier groupe
+                found_suit = card_details[0][1]
         
-        # Si aucune enseigne trouvée, on ne peut pas vérifier
+        # Si aucune enseigne trouvée, impossible de vérifier
         if not found_suit:
             return None
         
-        # 🔄 SÉQUENCE DE VÉRIFICATION : offset 0 → 1 → 2
-        # Vérifier d'abord offset 0, puis 1, puis 2 dans l'ordre
-        for check_offset in [0, 1, 2]:
-            # Calculer le numéro de prédiction correspondant à cet offset
-            pred_game = game_number - check_offset
+        # 🔄 VÉRIFICATION SÉQUENTIELLE : offset 0 → 1 → 2
+        # On vérifie UNE SEULE prédiction à la fois, dans l'ordre
+        
+        # 1️⃣ OFFSET 0 : Vérifier si game_number correspond à une prédiction
+        pred_game_0 = game_number
+        pred_data_0 = self.predictions.get(pred_game_0)
+        
+        if pred_data_0 and pred_data_0['status'] == 'pending':
+            predicted = pred_data_0['predicted_costume']
             
-            # Vérifier si une prédiction existe pour ce numéro
-            pred_data = self.predictions.get(pred_game)
-            if not pred_data or pred_data['status'] != 'pending':
-                continue  # Pas de prédiction pending pour cet offset, passer au suivant
-            
-            predicted = pred_data['predicted_costume']
-            
-            # ✅ SUCCÈS : L'enseigne correspond
+            # ✅ SUCCÈS à offset 0
             if found_suit == predicted:
-                symbol = SYMBOL_MAP.get(check_offset, '✅')
-                msg = f"🔵{pred_game}🔵:Enseigne {predicted} statut :{symbol}"
-                pred_data['status'] = 'won'
-                pred_data['final_message'] = msg
+                msg = f"🔵{pred_game_0}🔵:Enseigne {predicted} statut :✅0️⃣"
+                pred_data_0['status'] = 'won'
+                pred_data_0['final_message'] = msg
                 self.consecutive_fails = 0
                 self._save_all_data()
-                logger.info(f"✅ Prédiction {pred_game} validée à offset {check_offset} avec {predicted}")
-                return {'type': 'edit_message', 'predicted_game': str(pred_game), 'new_message': msg}
+                logger.info(f"✅ Prédiction {pred_game_0} validée à offset 0 avec {predicted}")
+                return {'type': 'edit_message', 'predicted_game': str(pred_game_0), 'new_message': msg}
+        
+        # 2️⃣ OFFSET 1 : Vérifier game_number - 1
+        pred_game_1 = game_number - 1
+        pred_data_1 = self.predictions.get(pred_game_1)
+        
+        if pred_data_1 and pred_data_1['status'] == 'pending':
+            predicted = pred_data_1['predicted_costume']
             
-            # ❌ ÉCHEC : Offset 2 atteint sans correspondance → ARRÊT
-            elif check_offset == 2:
-                msg = f"🔵{pred_game}🔵:Enseigne {predicted} statut :❌"
-                pred_data['status'] = 'lost'
-                pred_data['final_message'] = msg
+            # ✅ SUCCÈS à offset 1
+            if found_suit == predicted:
+                msg = f"🔵{pred_game_1}🔵:Enseigne {predicted} statut :✅1️⃣"
+                pred_data_1['status'] = 'won'
+                pred_data_1['final_message'] = msg
+                self.consecutive_fails = 0
+                self._save_all_data()
+                logger.info(f"✅ Prédiction {pred_game_1} validée à offset 1 avec {predicted}")
+                return {'type': 'edit_message', 'predicted_game': str(pred_game_1), 'new_message': msg}
+        
+        # 3️⃣ OFFSET 2 : Vérifier game_number - 2
+        pred_game_2 = game_number - 2
+        pred_data_2 = self.predictions.get(pred_game_2)
+        
+        if pred_data_2 and pred_data_2['status'] == 'pending':
+            predicted = pred_data_2['predicted_costume']
+            
+            # ✅ SUCCÈS à offset 2
+            if found_suit == predicted:
+                msg = f"🔵{pred_game_2}🔵:Enseigne {predicted} statut :✅2️⃣"
+                pred_data_2['status'] = 'won'
+                pred_data_2['final_message'] = msg
+                self.consecutive_fails = 0
+                self._save_all_data()
+                logger.info(f"✅ Prédiction {pred_game_2} validée à offset 2 avec {predicted}")
+                return {'type': 'edit_message', 'predicted_game': str(pred_game_2), 'new_message': msg}
+            
+            # ❌ ÉCHEC : Offset 2 atteint sans correspondance
+            else:
+                msg = f"🔵{pred_game_2}🔵:Enseigne {predicted} statut :❌"
+                pred_data_2['status'] = 'lost'
+                pred_data_2['final_message'] = msg
                 
                 # Gestion Automatique
-                if pred_data.get('is_inter'):
+                if pred_data_2.get('is_inter'):
                     self.is_inter_mode_active = False 
                     logger.info("❌ Échec INTER : Désactivation automatique.")
                 else:
@@ -426,7 +462,7 @@ class CardPredictor:
                         logger.info("⚠️ 2 Échecs Statiques : Activation automatique INTER.")
                 
                 self._save_all_data()
-                logger.info(f"❌ Prédiction {pred_game} échouée à offset 2 (prédit: {predicted}, trouvé: {found_suit})")
-                return {'type': 'edit_message', 'predicted_game': str(pred_game), 'new_message': msg}
+                logger.info(f"❌ Prédiction {pred_game_2} échouée à offset 2 (prédit: {predicted}, trouvé: {found_suit})")
+                return {'type': 'edit_message', 'predicted_game': str(pred_game_2), 'new_message': msg}
                 
         return None

@@ -88,7 +88,7 @@ class TelegramHandlers:
         import shutil
 
         try:
-            self.send_message(chat_id, "📦 Génération du package Render.com (fin8.zip) - Port 10000...")
+            self.send_message(chat_id, "📦 Génération du package Render.com (fina10.zip) - Port 10000...")
 
             # Créer le dossier de déploiement dans le répertoire courant
             deploy_dir = 'telegram-bot-deploy-temp'
@@ -130,7 +130,7 @@ class TelegramHandlers:
                     f.write(content)
 
             # Créer le fichier ZIP
-            zip_filename = 'fin8.zip'
+            zip_filename = 'fina10.zip'
 
             with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for root, dirs, files in os.walk(deploy_dir):
@@ -145,7 +145,7 @@ class TelegramHandlers:
                 files = {'document': (zip_filename, f, 'application/zip')}
                 data = {
                     'chat_id': chat_id,
-                    'caption': '📦 Package Render\\.com \\- FIN8\n\n✅ Port 10000 configuré\n✅ Messages ⏰ en attente auto\n✅ Vérification TOUS messages\n✅ Offset 0→1→2 séquentiel\n✅ Mode INTER Top 3\n\n📁 Fichiers:\nmain\\.py, bot\\.py, handlers\\.py\ncard\\_predictor\\.py\nconfig\\.py, requirements\\.txt\nrender\\.yaml\n\n⚙️ RENDER\\.COM CONFIG\n\nVariables env:\nBOT\\_TOKEN\nWEBHOOK\\_URL\nADMIN\\_ID\\=1190237801\nPORT\\=10000\n\nAprès déploiement:\n1\\. Notez URL Render\n2\\. Configurez webhook Telegram\n\n🔒 Traitement:\nMessages ⏰ → Attente\nVérif sur TOUS messages\nCooldown 30s\n\n✨ PRÊT RENDER\\.COM\\!',
+                    'caption': '📦 Package Render\\.com \\- FINA10\n\n✅ Port 10000 configuré\n✅ Vérification séquentielle optimisée\n✅ Offset 0→1→2 avec ARRÊT automatique\n✅ Mode INTER Top 3\n\n🔄 Séquence de Vérification:\n• Numéro prédit \\+ offset 0 → ✅0️⃣ puis ARRÊT\n• Si non → offset \\+1 → ✅1️⃣ puis ARRÊT\n• Si non → offset \\+2 → ✅2️⃣ puis ARRÊT\n• Si non → ❌ puis ARRÊT\n\n📁 Fichiers:\nmain\\.py, bot\\.py, handlers\\.py\ncard\\_predictor\\.py\nconfig\\.py, requirements\\.txt\nrender\\.yaml\n\n⚙️ CONFIG RENDER\\.COM\n\nVariables env:\nBOT\\_TOKEN\nWEBHOOK\\_URL\nADMIN\\_ID\\=1190237801\nPORT\\=10000\n\nAprès déploiement:\n1\\. Récupérez URL Render\n2\\. Configurez webhook\n\n✨ PRÊT RENDER\\.COM\\!',
                     'parse_mode': 'MarkdownV2'
                 }
                 response = requests.post(url, data=data, files=files, timeout=60)
@@ -156,7 +156,7 @@ class TelegramHandlers:
                 os.remove(zip_filename)
 
             if response.json().get('ok'):
-                logger.info(f"✅ Package de déploiement 'fin8.zip' envoyé avec succès pour Render.com")
+                logger.info(f"✅ Package de déploiement 'fina10.zip' envoyé avec succès pour Render.com")
             else:
                 self.send_message(chat_id, f"❌ Erreur lors de l'envoi du package : {response.text}")
 
