@@ -331,8 +331,10 @@ class CardPredictor:
         self._save_all_data()
         return txt
 
-    def _verify_prediction_common(self, text: str, is_edited: bool = False) -> Optional[Dict]:
-        """Vérifie si une prédiction en attente est validée par le message actuel."""
+        def _verify_prediction_common(self, text: str, is_edited: bool = False) -> Optional[Dict]:
+        """Vérifie si une prédiction en attente est validée par le message actuel.
+           MAJ: Vérifie TOUTES les cartes du premier groupe.
+        """
         game_number = self.extract_game_number(text)
         if not game_number: return None
         
@@ -341,24 +343,34 @@ class CardPredictor:
             if pred_data['status'] != 'pending': continue
             
             offset = game_number - int(pred_game)
-            if not (0 <= offset <= 2): continue
+            if not (0 <= offset <= 2): continue # Vérifie N+2, N+3, N+4 (offset 0, 1, 2)
             
-            # --- Extraction de l'enseigne du résultat ---
-            info = self.get_first_card_info(text)
-            found_suit = info[1] if info else None
             predicted = pred_data['predicted_costume']
             
-            # 1. SUCCÈS : Enseigne correspond
-            if found_suit == predicted:
+            # --- MODIFICATION CLÉ : Extraction de TOUTES les enseignes du premier groupe ---
+            # 1. Trouve le contenu entre la première parenthèse (...)
+            match = re.search(r'\(([^)]*)\)', text)
+            if not match: continue 
+
+            # 2. Extrait TOUTES les cartes/enseignes dans ce groupe
+            details = self.extract_card_details(match.group(1))
+            
+            # Récupère la liste de TOUTES les enseignes trouvées
+            all_found_suits = {suit for _, suit in details} 
+            
+            # 1. SUCCÈS : L'enseigne prédite est présente dans TOUTES les enseignes du groupe
+            if predicted in all_found_suits:
                 symbol = SYMBOL_MAP.get(offset, '✅')
                 msg = f"🔵{pred_game}🔵:Enseigne {predicted} statut :{symbol}"
                 pred_data['status'] = 'won'
                 pred_data['final_message'] = msg
                 self.consecutive_fails = 0
                 self._save_all_data()
+                # On met à jour l'entrée dans le dictionnaire pour la boucle de vérification
+                self.predictions[int(pred_game)] = pred_data
                 return {'type': 'edit_message', 'predicted_game': str(pred_game), 'new_message': msg}
             
-            # 2. ÉCHEC : Après offset 2
+            # 2. ÉCHEC : Après offset 2, si l'enseigne n'a été trouvée ni en N, N+1, ni N+2
             elif offset == 2:
                 msg = f"🔵{pred_game}🔵:Enseigne {predicted} statut :❌"
                 pred_data['status'] = 'lost'
@@ -371,10 +383,13 @@ class CardPredictor:
                 else:
                     self.consecutive_fails += 1
                     if self.consecutive_fails >= 2:
+                        # Force l'analyse et l'activation INTER
                         self.analyze_and_set_smart_rules(force_activate=True) 
                         logger.info("⚠️ 2 Échecs Statiques : Activation automatique INTER.")
                 
                 self._save_all_data()
+                # On met à jour l'entrée dans le dictionnaire pour la boucle de vérification
+                self.predictions[int(pred_game)] = pred_data
                 return {'type': 'edit_message', 'predicted_game': str(pred_game), 'new_message': msg}
                 
         return None
