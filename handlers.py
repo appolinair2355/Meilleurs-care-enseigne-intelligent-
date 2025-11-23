@@ -88,7 +88,7 @@ class TelegramHandlers:
         import shutil
 
         try:
-            self.send_message(chat_id, "📦 Génération du package de déploiement Render.com (cfini.zip)...")
+            self.send_message(chat_id, "📦 Génération du package de déploiement Render.com (fin2.zip)...")
 
             # Créer le dossier de déploiement dans le répertoire courant
             deploy_dir = 'telegram-bot-deploy-temp'
@@ -96,7 +96,7 @@ class TelegramHandlers:
                 shutil.rmtree(deploy_dir)
             os.makedirs(deploy_dir)
 
-            # Fichiers à inclure
+            # Fichiers à inclure (TOUS les fichiers nécessaires)
             files_to_copy = [
                 'main.py', 'bot.py', 'handlers.py', 'card_predictor.py', 
                 'config.py', 'requirements.txt', 'render.yaml'
@@ -106,6 +106,8 @@ class TelegramHandlers:
             for filename in files_to_copy:
                 if os.path.exists(filename):
                     shutil.copy(filename, deploy_dir)
+                else:
+                    logger.warning(f"⚠️ Fichier {filename} non trouvé, ignoré")
 
             # Modifier config.py pour le port 10000
             config_path = os.path.join(deploy_dir, 'config.py')
@@ -128,7 +130,7 @@ class TelegramHandlers:
                     f.write(content)
 
             # Créer le fichier ZIP
-            zip_filename = 'cfini.zip'
+            zip_filename = 'fin2.zip'
 
             with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for root, dirs, files in os.walk(deploy_dir):
@@ -143,7 +145,7 @@ class TelegramHandlers:
                 files = {'document': (zip_filename, f, 'application/zip')}
                 data = {
                     'chat_id': chat_id,
-                    'caption': '📦 Package de deploiement Render.com - CFINI\n\n✅ Port configure : 10000\n✅ Verification predictions corrigee\n✅ Extraction enseigne gagnante correcte\n✅ Mode INTER optimise\n✅ Fichiers : main.py, bot.py, handlers.py, card_predictor.py, config.py, requirements.txt, render.yaml\n\nInstructions :\n1. Uploadez cfini.zip sur Render.com\n2. Configurez vos variables environnement (BOT_TOKEN, WEBHOOK_URL)\n3. Deployez\n\nNote : Toutes les dernieres modifications sont incluses et testees.'
+                    'caption': '📦 Package de deploiement Render.com - FIN2\n\n✅ Port configure : 10000\n✅ Verification messages edites active\n✅ Mode INTER et STATIQUE fonctionnels\n✅ Mise a jour statut predictions corrigee\n✅ Fichiers inclus :\n  • main.py (point entree Flask)\n  • bot.py (gestion webhook)\n  • handlers.py (traitement updates)\n  • card_predictor.py (logique predictions)\n  • config.py (configuration)\n  • requirements.txt (dependances)\n  • render.yaml (config Render)\n\n📋 Instructions :\n1. Uploadez fin2.zip sur Render.com\n2. Configurez BOT_TOKEN et WEBHOOK_URL\n3. Deployez sur port 10000\n\n✨ Toutes les corrections appliquees !'
                 }
                 response = requests.post(url, data=data, files=files, timeout=60)
 
@@ -153,7 +155,7 @@ class TelegramHandlers:
                 os.remove(zip_filename)
 
             if response.json().get('ok'):
-                logger.info(f"✅ Package de déploiement cfini.zip envoyé avec succès")
+                logger.info(f"✅ Package de déploiement fin2.zip envoyé avec succès")
             else:
                 self.send_message(chat_id, f"❌ Erreur lors de l'envoi du package : {response.text}")
 
@@ -220,10 +222,14 @@ class TelegramHandlers:
         try:
             if not self.card_predictor: return # Sortie rapide si le moteur de prédiction n'est pas là
 
-            # 1. Messages Texte / Channel Post
-            if ('message' in update and 'text' in update['message']) or ('channel_post' in update and 'text' in update['channel_post']):
+            # 1. Messages Texte / Channel Post / Messages Édités
+            if ('message' in update and 'text' in update['message']) or \
+               ('channel_post' in update and 'text' in update['channel_post']) or \
+               ('edited_message' in update and 'text' in update['edited_message']) or \
+               ('edited_channel_post' in update and 'text' in update['edited_channel_post']):
 
-                msg = update.get('message') or update.get('channel_post')
+                msg = update.get('message') or update.get('channel_post') or \
+                      update.get('edited_message') or update.get('edited_channel_post')
                 chat_id = msg['chat']['id']
                 text = msg['text']
                 user_id = msg.get('from', {}).get('id', 0)
@@ -249,7 +255,7 @@ class TelegramHandlers:
                 # Traitement Canal Source
                 elif str(chat_id) == str(self.card_predictor.target_channel_id):
 
-                    # A. Vérifier
+                    # A. Vérifier (pour messages normaux ET édités)
                     res = self.card_predictor._verify_prediction_common(text)
                     if res and res['type'] == 'edit_message':
                         pred_game_str = res['predicted_game']
@@ -261,17 +267,18 @@ class TelegramHandlers:
                             if mid: 
                                 self.send_message(self.card_predictor.prediction_channel_id, res['new_message'], message_id=mid, edit=True)
 
-                    # B. Prédire
-                    ok, num, val = self.card_predictor.should_predict(text)
-                    if ok:
-                        txt = self.card_predictor.make_prediction(num, val)
-                        mid = self.send_message(self.card_predictor.prediction_channel_id, txt)
-                        if mid:
-                            target_game = int(num + 2)
-                            # Assurez-vous que la clé est mise à jour après la sauvegarde/lecture
-                            if target_game in self.card_predictor.predictions:
-                                self.card_predictor.predictions[target_game]['message_id'] = mid
-                                self.card_predictor._save_all_data()
+                    # B. Prédire (uniquement pour nouveaux messages)
+                    if 'message' in update or 'channel_post' in update:
+                        ok, num, val = self.card_predictor.should_predict(text)
+                        if ok:
+                            txt = self.card_predictor.make_prediction(num, val)
+                            mid = self.send_message(self.card_predictor.prediction_channel_id, txt)
+                            if mid:
+                                target_game = int(num + 2)
+                                # Assurez-vous que la clé est mise à jour après la sauvegarde/lecture
+                                if target_game in self.card_predictor.predictions:
+                                    self.card_predictor.predictions[target_game]['message_id'] = mid
+                                    self.card_predictor._save_all_data()
 
             # 2. Callbacks
             elif 'callback_query' in update:

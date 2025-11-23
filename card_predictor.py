@@ -279,24 +279,32 @@ class CardPredictor:
             return False, None, None
             
         game_number = self.extract_game_number(message)
-        if not game_number: return False, None, None
+        if not game_number: 
+            return False, None, None
         
-        # 2. Collecte INTER (Démarre la collecte puisque l'ID est connu)
+        # 2. Filtres : ignorer les messages de timing
+        if '🕐' in message or '⏰' in message: 
+            return False, None, None
+        
+        # 3. Extraire la première carte AVANT de vérifier ✅/🔰
+        info = self.get_first_card_info(message)
+        if not info: 
+            return False, None, None
+        first_card, suit = info
+        
+        # 4. Collecte INTER (Démarre la collecte puisque l'ID est connu)
         self.collect_inter_data(game_number, message)
         
-        # 3. Filtres
-        if '🕐' in message or '⏰' in message: return False, None, None
-        if '✅' not in message and '🔰' not in message: return False, None, None
+        # 5. Vérifier que le message est finalisé (✅ ou 🔰)
+        if '✅' not in message and '🔰' not in message: 
+            return False, None, None
         
-        # Règle : Ecart de 3 jeux
+        # 6. Règle : Ecart de 3 jeux minimum
         if self.last_predicted_game_number and (game_number - self.last_predicted_game_number < 3):
+            logger.info(f"⏭️ Skip prédiction : Écart trop court (dernier: {self.last_predicted_game_number}, actuel: {game_number})")
             return False, None, None
 
-        # 4. Décision
-        info = self.get_first_card_info(message)
-        if not info: return False, None, None
-        first_card, _ = info # On ne garde que la carte complète pour le déclencheur
-        
+        # 7. Décision de prédiction
         predicted_suit = None
 
         # A. PRIORITÉ 1 : MODE INTER
@@ -312,16 +320,20 @@ class CardPredictor:
             predicted_suit = STATIC_RULES[first_card]
             logger.info(f"🔮 STATIQUE: Déclencheur {first_card} -> Prédit {predicted_suit}")
 
+        # 8. Si une prédiction est trouvée, vérifier le cooldown
         if predicted_suit:
             if self.last_prediction_time and time.time() < self.last_prediction_time + 30:
+                logger.info(f"⏳ Cooldown actif, prédiction ignorée")
                 return False, None, None
                 
             self.last_prediction_time = time.time()
             self.last_predicted_game_number = game_number
             self.consecutive_fails = 0
             self._save_all_data()
+            logger.info(f"✅ Prédiction validée pour jeu {game_number + 2} : {predicted_suit}")
             return True, game_number, predicted_suit
 
+        logger.info(f"❌ Aucune règle trouvée pour {first_card}")
         return False, None, None
 
     def make_prediction(self, game_number: int, suit: str) -> str:
