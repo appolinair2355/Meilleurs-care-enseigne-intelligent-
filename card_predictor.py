@@ -366,10 +366,6 @@ class CardPredictor:
         3. Sinon, vérifier Prédit +2 (offset 2) → statut = ✅2️⃣ et ARRÊT
         4. Si offset 2 atteint sans correspondance → statut = ❌ et ARRÊT
         """
-        # FILTRE CRITIQUE : Vérifier uniquement les messages finalisés
-        if '✅' not in text and '🔰' not in text:
-            return None
-            
         game_number = self.extract_game_number(text)
         if not game_number: return None
         

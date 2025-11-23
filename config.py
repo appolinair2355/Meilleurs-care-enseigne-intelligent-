@@ -29,7 +29,7 @@ class Config:
         self.WEBHOOK_URL = self._determine_webhook_url()
         logger.info(f"🔗 Webhook URL configuré: {self.WEBHOOK_URL}")
 
-        # Port pour le serveur (utilise PORT env ou 5000 par défaut pour Replit)
+        # Port pour le serveur (utilise PORT env ou 10000 par défaut pour Render)
         self.PORT = int(os.getenv('PORT') or 10000)
         
         # Canaux (Les vraies valeurs sont gérées par CardPredictor)
@@ -57,12 +57,16 @@ class Config:
         """Détermine l'URL du webhook avec priorité à l'ENV."""
         webhook_url = os.getenv('WEBHOOK_URL')
         
-        # Logique d'auto-génération (adaptée à Replit comme dans le schéma)
+        # Logique d'auto-génération (adaptée à Replit)
         if not webhook_url:
+            # Détection Replit
             if os.getenv('REPLIT_DOMAINS'):
                 webhook_url = f"https://{os.getenv('REPLIT_DOMAINS')}"
-            else:
+            elif os.getenv('REPL_SLUG'):
                 webhook_url = f'https://{os.getenv("REPL_SLUG", "")}.{os.getenv("REPL_OWNER", "")}.repl.co'
+            # Sur Render, WEBHOOK_URL DOIT être défini manuellement
+            elif os.getenv('RENDER'):
+                logger.warning("⚠️ Sur Render.com, WEBHOOK_URL doit être défini manuellement dans les variables d'environnement")
         
         return webhook_url
     

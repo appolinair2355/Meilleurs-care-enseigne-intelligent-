@@ -69,6 +69,13 @@ def setup_webhook():
     try:
         full_webhook_url = config.get_webhook_url()
         
+        # Log de diagnostic
+        logger.info(f"🔍 Environnement détecté:")
+        logger.info(f"  - PORT: {config.PORT}")
+        logger.info(f"  - WEBHOOK_URL (env): {os.getenv('WEBHOOK_URL', 'NON DÉFINI')}")
+        logger.info(f"  - RENDER: {os.getenv('RENDER', 'false')}")
+        logger.info(f"  - REPLIT_DOMAINS: {os.getenv('REPLIT_DOMAINS', 'NON DÉFINI')}")
+        
         if full_webhook_url and not config.WEBHOOK_URL.startswith('https://.repl.co'):
             logger.info(f"🔗 Tentative de configuration webhook: {full_webhook_url}")
 
@@ -79,8 +86,11 @@ def setup_webhook():
                 logger.info(f"🎯 Bot prêt pour prédictions automatiques et vérifications via webhook")
             else:
                 logger.error("❌ Échec configuration webhook.")
+                logger.error("💡 Vérifiez que WEBHOOK_URL est correctement défini dans les variables d'environnement Render")
         else:
             logger.warning("⚠️ WEBHOOK_URL non configurée ou non valide. Le webhook ne sera PAS configuré.")
+            if os.getenv('RENDER'):
+                logger.error("🚨 SUR RENDER.COM : Vous DEVEZ définir WEBHOOK_URL dans les variables d'environnement !")
     except Exception as e:
         logger.error(f"❌ Erreur critique lors du setup du webhook: {e}")
 
