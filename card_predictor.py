@@ -323,15 +323,21 @@ class CardPredictor:
 
         # 8. Si une prédiction est trouvée, vérifier le cooldown
         if predicted_suit:
+            time_since_last = time.time() - self.last_prediction_time if self.last_prediction_time else 999
             if self.last_prediction_time and time.time() < self.last_prediction_time + 30:
-                logger.info(f"⏳ Cooldown actif, prédiction ignorée")
+                logger.warning(f"⏳ COOLDOWN ACTIF: {int(30 - time_since_last)}s restantes | Jeu {game_number} ({first_card}) → {predicted_suit} IGNORÉ")
+                return False, None, None
+            
+            # Vérification supplémentaire de l'écart
+            if self.last_predicted_game_number and (game_number - self.last_predicted_game_number < 3):
+                logger.warning(f"⏭️ ÉCART INSUFFISANT: Dernier={self.last_predicted_game_number}, Actuel={game_number}, Diff={game_number - self.last_predicted_game_number} | Jeu {game_number} ({first_card}) → {predicted_suit} IGNORÉ")
                 return False, None, None
                 
             self.last_prediction_time = time.time()
             self.last_predicted_game_number = game_number
             self.consecutive_fails = 0
             self._save_all_data()
-            logger.info(f"✅ Prédiction validée pour jeu {game_number + 2} : {predicted_suit}")
+            logger.info(f"✅ PRÉDICTION CRÉÉE: Jeu {game_number} ({first_card}) → Prédire {predicted_suit} pour jeu {game_number + 2}")
             return True, game_number, predicted_suit
 
         logger.info(f"❌ Aucune règle trouvée pour {first_card}")

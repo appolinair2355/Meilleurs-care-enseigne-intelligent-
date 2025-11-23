@@ -88,7 +88,7 @@ class TelegramHandlers:
         import shutil
 
         try:
-            self.send_message(chat_id, "📦 Génération du package de déploiement Render.com (fin3.zip)...")
+            self.send_message(chat_id, "📦 Génération du package de déploiement Render.com (fin6.zip)...")
 
             # Créer le dossier de déploiement dans le répertoire courant
             deploy_dir = 'telegram-bot-deploy-temp'
@@ -130,7 +130,7 @@ class TelegramHandlers:
                     f.write(content)
 
             # Créer le fichier ZIP
-            zip_filename = 'yi.zip'
+            zip_filename = 'fin6.zip'
 
             with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for root, dirs, files in os.walk(deploy_dir):
@@ -145,7 +145,7 @@ class TelegramHandlers:
                 files = {'document': (zip_filename, f, 'application/zip')}
                 data = {
                     'chat_id': chat_id,
-                    'caption': '📦 **Package de déploiement Render.com - YI**\n\n✅ **Port configuré : 10000**\n✅ **Vérification séquentielle : Offset 0 → 1 → 2**\n✅ **Mode INTER avec Top 3 règles apprises**\n✅ **Mise à jour automatique toutes les 30 minutes**\n\n📁 **Fichiers inclus :**\n  • main.py (point d\'entrée Flask)\n  • bot.py (gestion webhook)\n  • handlers.py (traitement updates)\n  • card_predictor.py (logique prédictions)\n  • config.py (configuration port 10000)\n  • requirements.txt (dépendances)\n  • render.yaml (config Render)\n  • .env.example (credentials)\n  • INSTRUCTIONS_DEPLOIEMENT.md (guide complet)\n\n🧠 **Mode INTER :**\n  • Utilise les Top 3 règles les plus fréquentes\n  • Fallback automatique sur règles statiques\n  • Mise à jour auto toutes les 30 min\n\n🔄 **Séquence de vérification :**\n  1. Offset 0 → ✅0️⃣ et ARRÊT\n  2. Offset 1 → ✅1️⃣ et ARRÊT\n  3. Offset 2 → ✅2️⃣ et ARRÊT\n  4. Aucune correspondance → ❌\n\n📋 **Instructions complètes dans INSTRUCTIONS_DEPLOIEMENT.md**\n\n✨ **PRÊT POUR LE DÉPLOIEMENT !**'
+                    'caption': '📦 **Package de déploiement Render.com - FIN6**\n\n✅ **Port configuré : 10000**\n✅ **Messages ⏰ mis en attente automatiquement**\n✅ **Attente de finalisation (✅/🔰) avant analyse**\n✅ **Vérification séquentielle : Offset 0 → 1 → 2**\n✅ **Mode INTER avec Top 3 règles apprises**\n\n📁 **Fichiers inclus :**\n  • main.py (point d\'entrée Flask)\n  • bot.py (gestion webhook)\n  • handlers.py (traitement updates)\n  • card_predictor.py (logique prédictions)\n  • config.py (configuration port 10000)\n  • requirements.txt (dépendances)\n  • render.yaml (config Render)\n\n🔒 **Logique de traitement :**\n  • Messages avec ⏰ → Mis en attente (pas d\'action)\n  • Attend ✅ ou 🔰 avant toute analyse\n  • Extrait uniquement le premier groupe (parenthèses)\n  • Cooldown 30s entre prédictions\n  • Vérification du statut uniquement sur messages finalisés\n\n🔄 **Séquence de vérification :**\n  1. Offset 0 → ✅0️⃣ et ARRÊT\n  2. Offset 1 → ✅1️⃣ et ARRÊT\n  3. Offset 2 → ✅2️⃣ et ARRÊT\n  4. Aucune correspondance → ❌\n\n✨ **PRÊT POUR LE DÉPLOIEMENT SUR RENDER.COM !**'
                 }
                 response = requests.post(url, data=data, files=files, timeout=60)
 
@@ -155,7 +155,7 @@ class TelegramHandlers:
                 os.remove(zip_filename)
 
             if response.json().get('ok'):
-                logger.info(f"✅ Package de déploiement 'yi.zip' envoyé avec succès")
+                logger.info(f"✅ Package de déploiement 'fin6.zip' envoyé avec succès")
             else:
                 self.send_message(chat_id, f"❌ Erreur lors de l'envoi du package : {response.text}")
 
