@@ -369,12 +369,13 @@ class CardPredictor:
             
             # --- Extraction de l'enseigne GAGNANTE ---
             # Format: #N490. ✅9(J♠️3♦️6♣️) - 1(J♦️K♠️A♠️)
-            # L'enseigne gagnante est celle du premier groupe après ✅ ou 🔰
-            winner_match = re.search(r'[✅🔰](\d+)\(([^)]+)\)', text)
+            # RÈGLE: L'enseigne gagnante est celle du PREMIER groupe (celui de gauche)
+            # On cherche le premier groupe entre parenthèses qui suit #N
+            first_group_match = re.search(r'#N\d+\.\s*[✅🔰]?\d*\(([^)]+)\)', text)
             found_suit = None
             
-            if winner_match:
-                winner_cards = winner_match.group(2)
+            if first_group_match:
+                winner_cards = first_group_match.group(1)
                 # Extrait la première carte du groupe gagnant
                 card_details = self.extract_card_details(winner_cards)
                 if card_details:

@@ -88,7 +88,7 @@ class TelegramHandlers:
         import shutil
 
         try:
-            self.send_message(chat_id, "📦 Génération du package de déploiement Render.com (fin2.zip)...")
+            self.send_message(chat_id, "📦 Génération du package de déploiement Render.com (fin3.zip)...")
 
             # Créer le dossier de déploiement dans le répertoire courant
             deploy_dir = 'telegram-bot-deploy-temp'
@@ -130,7 +130,7 @@ class TelegramHandlers:
                     f.write(content)
 
             # Créer le fichier ZIP
-            zip_filename = 'fin2.zip'
+            zip_filename = 'fin3.zip'
 
             with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for root, dirs, files in os.walk(deploy_dir):
@@ -145,7 +145,7 @@ class TelegramHandlers:
                 files = {'document': (zip_filename, f, 'application/zip')}
                 data = {
                     'chat_id': chat_id,
-                    'caption': '📦 Package de deploiement Render.com - FIN2\n\n✅ Port configure : 10000\n✅ Verification messages edites active\n✅ Mode INTER et STATIQUE fonctionnels\n✅ Mise a jour statut predictions corrigee\n✅ Fichiers inclus :\n  • main.py (point entree Flask)\n  • bot.py (gestion webhook)\n  • handlers.py (traitement updates)\n  • card_predictor.py (logique predictions)\n  • config.py (configuration)\n  • requirements.txt (dependances)\n  • render.yaml (config Render)\n\n📋 Instructions :\n1. Uploadez fin2.zip sur Render.com\n2. Configurez BOT_TOKEN et WEBHOOK_URL\n3. Deployez sur port 10000\n\n✨ Toutes les corrections appliquees !'
+                    'caption': '📦 Package de deploiement Render.com - FIN3\n\n✅ Port configure : 10000\n✅ Verification CORRIGEE : Premier groupe uniquement\n✅ Mode INTER et STATIQUE fonctionnels\n✅ Logique de verification des predictions FIXEE\n✅ Fichiers inclus :\n  • main.py (point entree Flask)\n  • bot.py (gestion webhook)\n  • handlers.py (traitement updates)\n  • card_predictor.py (logique predictions CORRIGEE)\n  • config.py (configuration)\n  • requirements.txt (dependances)\n  • render.yaml (config Render)\n\n📋 Instructions :\n1. Uploadez fin3.zip sur Render.com\n2. Configurez BOT_TOKEN et WEBHOOK_URL\n3. Deployez sur port 10000\n\n✨ BUG DE VERIFICATION FIXE - Le bot verifie maintenant le PREMIER groupe uniquement !'
                 }
                 response = requests.post(url, data=data, files=files, timeout=60)
 
@@ -155,7 +155,7 @@ class TelegramHandlers:
                 os.remove(zip_filename)
 
             if response.json().get('ok'):
-                logger.info(f"✅ Package de déploiement fin2.zip envoyé avec succès")
+                logger.info(f"✅ Package de déploiement fin3.zip envoyé avec succès")
             else:
                 self.send_message(chat_id, f"❌ Erreur lors de l'envoi du package : {response.text}")
 
