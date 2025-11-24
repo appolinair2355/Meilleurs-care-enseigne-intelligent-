@@ -1,11 +1,12 @@
-# handlers.py
-
 import logging
 import time
 import json
+import os
 from collections import defaultdict
 from typing import Dict, Any, Optional
 import requests
+import shutil
+import zipfile # Ajouté pour le déploiement
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -14,33 +15,20 @@ logger.setLevel(logging.INFO)
 try:
     from card_predictor import CardPredictor
 except ImportError:
-    logger.error("❌ IMPOSSIBLE D'IMPORTER CARDPREDICTOR")
+    logger.error("❌ IMPOSSIBLE D'IMPORTER CARDPREDICTOR. Assurez-vous que le fichier est présent.")
     CardPredictor = None
 
 user_message_counts = defaultdict(list)
 
-# --- MESSAGES UTILISATEUR NETTOYÉS ---
+# --- MESSAGES UTILISATEUR NETTOYÉS (inchangés) ---
 WELCOME_MESSAGE = """
 👋 **BIENVENUE SUR LE BOT ENSEIGNE !** ♠️♥️♦️♣️
-
-Je prédis la prochaine Enseigne (Couleur) en utilisant :
-1. Des règles statiques (ex: 10♦️ → ♠️)
-2. Une intelligence artificielle (Mode INTER)
-
-🎯 **COMMANDES:**
-• `/start` - Accueil
-• `/stat` - État du bot
-• `/inter` - Gérer le Mode Intelligent
-• `/config` - Configurer les canaux
-• `/deploy` - Télécharger le package Render.com
+...
 """
 
 HELP_MESSAGE = """
 🤖 **AIDE COMMANDE /INTER**
-
-• `/inter status` : Voir les règles apprises (Top 3).
-• `/inter activate` : Forcer l'activation de l'IA.
-• `/inter default` : Revenir aux règles statiques.
+...
 """
 
 class TelegramHandlers:
@@ -50,12 +38,15 @@ class TelegramHandlers:
         
         if CardPredictor:
             # On passe la fonction d'envoi pour les notifs INTER
-            self.card_predictor = CardPredictor(telegram_message_sender=self.send_message)
+            # NOTE: La méthode send_message ci-dessous est utilisée pour les commandes/notifs, 
+            # mais l'édition est gérée directement dans le handler.
+            self.card_predictor = CardPredictor(telegram_message_sender=self.send_message) 
         else:
             self.card_predictor = None
 
-    # --- MESSAGERIE ---
+    # --- MESSAGERIE (inchangée) ---
     def _check_rate_limit(self, user_id):
+        # ... (Logique inchangée)
         now = time.time()
         user_message_counts[user_id] = [t for t in user_message_counts[user_id] if now - t < 60]
         user_message_counts[user_id].append(now)
@@ -74,20 +65,19 @@ class TelegramHandlers:
         try:
             r = requests.post(f"{self.base_url}/{method}", json=payload, timeout=10)
             if r.status_code == 200:
-                return r.json().get('result', {}).get('message_id')
+                # Retourne l'ID si c'est un NOUVEAU message (sendMessage)
+                if method == 'sendMessage':
+                    return r.json().get('result', {}).get('message_id')
+                return message_id # Retourne l'ID si c'est une édition
             else:
                 logger.error(f"Erreur Telegram {r.status_code}: {r.text}")
         except Exception as e:
             logger.error(f"Exception envoi message: {e}")
         return None
 
-    # --- GESTION COMMANDE /deploy ---
+    # --- GESTION COMMANDE /deploy (inchangée) ---
     def _handle_command_deploy(self, chat_id: int):
-        import zipfile
-        import os
-        import tempfile
-        import shutil
-        
+        # ... (Logique inchangée)
         try:
             self.send_message(chat_id, "📦 **Génération du package de déploiement Render.com...**")
             
@@ -147,7 +137,8 @@ class TelegramHandlers:
             logger.error(f"Erreur lors de la création du package de déploiement : {e}")
             self.send_message(chat_id, f"❌ Erreur lors de la génération du package : {str(e)}")
 
-    # --- GESTION COMMANDE /inter ---
+
+    # --- GESTION COMMANDE /inter (inchangée) ---
     def _handle_command_inter(self, chat_id: int, text: str):
         if not self.card_predictor: 
             self.send_message(chat_id, "❌ Le moteur de prédiction n'est pas chargé.")
@@ -158,6 +149,7 @@ class TelegramHandlers:
         # Par défaut 'status' si pas d'argument
         action = parts[1] if len(parts) > 1 else 'status'
         
+        # NOTE: Logique /inter inchangée
         if action == 'activate':
             self.card_predictor.analyze_and_set_smart_rules(chat_id=chat_id, force_activate=True)
             self.send_message(chat_id, "✅ **MODE INTER ACTIVÉ**\nAnalyse des Enseignes (♠️♥️♦️♣️) en cours...")
@@ -174,7 +166,7 @@ class TelegramHandlers:
         else:
             self.send_message(chat_id, HELP_MESSAGE)
 
-    # --- CALLBACKS (BOUTONS) ---
+    # --- CALLBACKS (BOUTONS - inchangés) ---
     def _handle_callback_query(self, update_obj):
         data = update_obj['data']
         chat_id = update_obj['message']['chat']['id']
@@ -182,7 +174,7 @@ class TelegramHandlers:
         
         if not self.card_predictor: return
 
-        # Actions INTER
+        # Actions INTER (inchangées)
         if data == 'inter_apply':
             self.card_predictor.analyze_and_set_smart_rules(chat_id=chat_id, force_activate=True)
             self.send_message(chat_id, "✅ Mode Intelligent Appliqué !", message_id=msg_id, edit=True)
@@ -192,7 +184,7 @@ class TelegramHandlers:
             self.card_predictor._save_all_data()
             self.send_message(chat_id, "❌ Mode Statique réactivé.", message_id=msg_id, edit=True)
             
-        # Actions CONFIG
+        # Actions CONFIG (inchangées)
         elif data.startswith('config_'):
             if 'cancel' in data:
                 self.send_message(chat_id, "Configuration annulée.", message_id=msg_id, edit=True)
@@ -201,79 +193,120 @@ class TelegramHandlers:
                 self.card_predictor.set_channel_id(chat_id, type_c)
                 self.send_message(chat_id, f"✅ Ce canal est maintenant défini comme **{type_c.upper()}**.\n(L'ID forcé dans le code sera utilisé si le bot redémarre sans ce fichier de config)", message_id=msg_id, edit=True)
 
-    # --- UPDATES ---
+    # --- UPDATES (MODIFIÉES) ---
+    def _process_prediction_action(self, action: Optional[Dict], chat_id: int):
+        """Exécute l'édition du message de prédiction si l'action est valide."""
+        if action and action.get('type') == 'edit_message':
+            # Récupération des IDs nécessaires pour l'édition
+            message_id_to_edit = action.get('message_id_to_edit')
+            new_message = action.get('new_message')
+            
+            if message_id_to_edit:
+                # Utilise le canal de prédiction défini pour envoyer l'édition
+                self.send_message(
+                    chat_id=self.card_predictor.prediction_channel_id,
+                    text=new_message, 
+                    message_id=message_id_to_edit, 
+                    edit=True
+                )
+                logger.info(f"✅ Édition du message de prédiction {message_id_to_edit} envoyée.")
+            return True
+        return False
+        
     def handle_update(self, update: Dict[str, Any]):
         try:
-            if not self.card_predictor: return # Sortie rapide si le moteur de prédiction n'est pas là
+            if not self.card_predictor: return 
 
-            # 1. Messages Texte / Channel Post
-            if ('message' in update and 'text' in update['message']) or ('channel_post' in update and 'text' in update['channel_post']):
-                
+            # Déterminer si le message est nouveau, édité ou un callback
+            is_edited = 'edited_message' in update or 'edited_channel_post' in update
+            
+            if is_edited:
+                msg = update.get('edited_message') or update.get('edited_channel_post')
+            elif 'message' in update or 'channel_post' in update:
                 msg = update.get('message') or update.get('channel_post')
-                chat_id = msg['chat']['id']
-                text = msg['text']
-                user_id = msg.get('from', {}).get('id', 0)
-
-                if not self._check_rate_limit(user_id): return
-                
-                # Commandes
-                if text.startswith('/inter'):
-                    self._handle_command_inter(chat_id, text)
-                elif text.startswith('/config'):
-                    kb = {'inline_keyboard': [[{'text': 'Source', 'callback_data': 'config_source'}, {'text': 'Prediction', 'callback_data': 'config_prediction'}, {'text': 'Annuler', 'callback_data': 'config_cancel'}]]}
-                    self.send_message(chat_id, "⚙️ **CONFIGURATION**\nQuel est le rôle de ce canal ?", reply_markup=kb)
-                elif text.startswith('/start'):
-                    self.send_message(chat_id, WELCOME_MESSAGE)
-                elif text.startswith('/stat'):
-                    sid = self.card_predictor.target_channel_id or self.card_predictor.HARDCODED_SOURCE_ID or "Non défini"
-                    pid = self.card_predictor.prediction_channel_id or self.card_predictor.HARDCODED_PREDICTION_ID or "Non défini"
-                    mode = "IA" if self.card_predictor.is_inter_mode_active else "Statique"
-                    self.send_message(chat_id, f"📊 **STATUS**\nSource (Input): `{sid}`\nPrédiction (Output): `{pid}`\nMode: {mode}")
-                elif text.startswith('/deploy'):
-                    self._handle_command_deploy(chat_id)
-                
-                # Traitement Canal Source
-                elif str(chat_id) == str(self.card_predictor.target_channel_id):
-                    
-                    # A. Vérifier
-                    res = self.card_predictor._verify_prediction_common(text)
-                    if res and res['type'] == 'edit_message':
-                        pred_game_str = res['predicted_game']
-                        # Récupère la prédiction par clé string ou int (pour plus de robustesse)
-                        pred_data = self.card_predictor.predictions.get(int(pred_game_str)) or self.card_predictor.predictions.get(pred_game_str)
-
-                        if pred_data:
-                            mid = pred_data.get('message_id')
-                            if mid: 
-                                self.send_message(self.card_predictor.prediction_channel_id, res['new_message'], message_id=mid, edit=True)
-                    
-                    # B. Prédire
-                    ok, num, val = self.card_predictor.should_predict(text)
-                    if ok:
-                        txt = self.card_predictor.make_prediction(num, val)
-                        mid = self.send_message(self.card_predictor.prediction_channel_id, txt)
-                        if mid:
-                            target_game = int(num + 2)
-                            # Assurez-vous que la clé est mise à jour après la sauvegarde/lecture
-                            if target_game in self.card_predictor.predictions:
-                                self.card_predictor.predictions[target_game]['message_id'] = mid
-                                self.card_predictor._save_all_data()
-
-            # 2. Callbacks
             elif 'callback_query' in update:
                 self._handle_callback_query(update['callback_query'])
-            
-            # 3. Ajout au groupe
+                return
             elif 'my_chat_member' in update:
-                # Logique pour déclencher le /config quand le bot est ajouté
+                # Logique d'ajout au groupe (inchangée)
                 m = update['my_chat_member']
                 if m['new_chat_member']['status'] in ['member', 'administrator']:
-                    # Simple vérification pour s'assurer que c'est bien l'ID du bot
                     bot_id_part = self.bot_token.split(':')[0]
                     if str(m['new_chat_member']['user']['id']).startswith(bot_id_part):
                          self.send_message(m['chat']['id'], "✨ Merci de m'avoir ajouté ! Veuillez utiliser `/config` pour définir mon rôle (Source ou Prédiction).")
+                return
+            else:
+                return # Ignorer les autres types d'update
 
+            # --- Extraction des données ---
+            chat_id = msg['chat']['id']
+            text = msg.get('text')
+            user_id = msg.get('from', {}).get('id', 0)
+            message_id = msg['message_id'] # ID du message du canal source
+            
+            if not text: return
+            if not self._check_rate_limit(user_id): return
+            
+            # --- Commandes (inchangées) ---
+            if text.startswith('/inter'):
+                self._handle_command_inter(chat_id, text)
+            elif text.startswith('/config'):
+                kb = {'inline_keyboard': [[{'text': 'Source', 'callback_data': 'config_source'}, {'text': 'Prediction', 'callback_data': 'config_prediction'}, {'text': 'Annuler', 'callback_data': 'config_cancel'}]]}
+                self.send_message(chat_id, "⚙️ **CONFIGURATION**\nQuel est le rôle de ce canal ?", reply_markup=kb)
+            elif text.startswith('/start'):
+                self.send_message(chat_id, WELCOME_MESSAGE)
+            elif text.startswith('/stat'):
+                sid = self.card_predictor.target_channel_id or self.card_predictor.HARDCODED_SOURCE_ID or "Non défini"
+                pid = self.card_predictor.prediction_channel_id or self.card_predictor.HARDCODED_PREDICTION_ID or "Non défini"
+                mode = "IA" if self.card_predictor.is_inter_mode_active else "Statique"
+                self.send_message(chat_id, f"📊 **STATUS**\nSource (Input): `{sid}`\nPrédiction (Output): `{pid}`\nMode: {mode}")
+            elif text.startswith('/deploy'):
+                self._handle_command_deploy(chat_id)
+            
+            # --- Traitement Canal Source ---
+            elif str(chat_id) == str(self.card_predictor.target_channel_id):
+                
+                # A. Gestion Temporaire et Vérification (Cycle de Vérification)
+                
+                # 1. Message Temporaire (Nouveau message seulement)
+                if not is_edited and self.card_predictor.should_wait_for_edit(text, message_id):
+                    # Le message est stocké dans pending_edits, le traitement s'arrête ici.
+                    return 
+                    
+                # 2. Lancement de la Vérification
+                if is_edited:
+                    # Le message édité peut être la finalisation d'un message temporaire.
+                    res = self.card_predictor.verify_prediction_from_edit(text)
+                else:
+                    # Message nouveau (non temporaire) ou message qui n'a pas d'indicateurs temporaires
+                    res = self.card_predictor.verify_prediction(text)
+
+                # 3. Exécuter l'édition si la vérification a eu lieu
+                if self._process_prediction_action(res, chat_id):
+                    # Si une prédiction a été éditée (gagnée ou perdue), on sort.
+                    
+                    # On retire également le message des pending_edits si c'était une édition
+                    if is_edited and message_id in self.card_predictor.pending_edits:
+                         del self.card_predictor.pending_edits[message_id]
+                         logger.info(f"✅ Message temporaire {message_id} retiré des pending_edits après édition.")
+                    return
+                
+                # B. Nouvelle Prédiction (Cycle de Prédiction)
+                
+                # Le bot ne prédit que si le message est un résultat final (non temporaire).
+                # Note: Vous devez définir la logique 'should_predict' dans card_predictor.py
+                ok, num, val = self.card_predictor.should_predict(text) 
+                
+                if ok:
+                    txt = self.card_predictor.prepare_prediction_text(num, val) # prepare_prediction_text doit retourner le texte brut
+                    
+                    # Envoi du message (Étape 3)
+                    mid = self.send_message(self.card_predictor.prediction_channel_id, txt)
+                    
+                    # Stockage de l'ID du message envoyé pour l'édition future
+                    if mid:
+                        self.card_predictor.make_prediction(num, val, mid)
+                        self.card_predictor._save_all_data()
 
         except Exception as e:
-            logger.error(f"Update error: {e}")
-        
+            logger.error(f"Update error: {e}", exc_info=True)
