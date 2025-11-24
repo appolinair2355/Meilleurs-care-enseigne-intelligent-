@@ -264,7 +264,6 @@ class CardPredictor:
         # 1. Vérif Périodique
         self.check_and_update_rules()
         
-        # VÉRIF CRITIQUE : Maintenant que les IDs sont forcés, ceci devrait toujours être vrai.
         if not self.target_channel_id: 
             logger.warning("❌ target_channel_id non défini. Impossible de prédire.")
             return False, None, None
@@ -272,10 +271,11 @@ class CardPredictor:
         game_number = self.extract_game_number(message)
         if not game_number: return False, None, None
         
-        # 2. Collecte INTER (Démarre la collecte puisque l'ID est connu)
+        # 2. Collecte INTER 
         self.collect_inter_data(game_number, message)
         
-        # 3. Filtres
+        # 3. Filtres pour le DÉCLENCHEMENT de la prédiction
+        # Empêche la prédiction si le message est encore en attente (⏰ ou 🕐)
         if '🕐' in message or '⏰' in message: return False, None, None
         if '✅' not in message and '🔰' not in message: return False, None, None
         
@@ -286,24 +286,26 @@ class CardPredictor:
         # 4. Décision
         info = self.get_first_card_info(message)
         if not info: return False, None, None
-        first_card, _ = info # On ne garde que la carte complète pour le déclencheur
+        first_card, _ = info 
         
         predicted_suit = None
 
-        # A. PRIORITÉ 1 : MODE INTER
+        # A. PRIORITÉ 1 : MODE INTER (Si actif, on essaie d'abord cette règle)
         if self.is_inter_mode_active and self.smart_rules:
             for rule in self.smart_rules:
                 if rule['trigger'] == first_card:
                     predicted_suit = rule['predict']
                     logger.info(f"🔮 INTER: Déclencheur {first_card} -> Prédit {predicted_suit}")
-                    break
+                    # Si une règle INTER est trouvée, on s'arrête là.
+                    break 
             
-        # B. PRIORITÉ 2 : MODE STATIQUE
+        # B. PRIORITÉ 2 : MODE STATIQUE (Seulement si INTER n'a rien trouvé ou n'est pas actif)
         if not predicted_suit and first_card in STATIC_RULES:
             predicted_suit = STATIC_RULES[first_card]
             logger.info(f"🔮 STATIQUE: Déclencheur {first_card} -> Prédit {predicted_suit}")
 
         if predicted_suit:
+            # Assure le cooldown de 30s
             if self.last_prediction_time and time.time() < self.last_prediction_time + 30:
                 return False, None, None
                 
@@ -332,10 +334,15 @@ class CardPredictor:
 
     def _verify_prediction_common(self, text: str, is_edited: bool = False) -> Optional[Dict]:
         """Vérifie si une prédiction en attente est validée par le message actuel.
-           MAJ: Vérifie TOUTES les cartes du premier groupe.
+           Filtre les messages non finalisés (⏰/🕐 sans ✅/🔰).
+           Utilise la vérification large sur TOUTES les cartes du premier groupe.
         """
         game_number = self.extract_game_number(text)
         if not game_number: return None
+        
+        # FILTRE CRITIQUE : Ignorer si le message contient '⏰' ou '🕐' et n'est pas finalisé ('✅' ou '🔰')
+        if ('⏰' in text or '🕐' in text) and ('✅' not in text and '🔰' not in text):
+            return None 
         
         # Copie pour itération sûre
         for pred_game, pred_data in list(self.predictions.items()):
@@ -346,7 +353,7 @@ class CardPredictor:
             
             predicted = pred_data['predicted_costume']
             
-            # --- MODIFICATION CLÉ : Extraction de TOUTES les enseignes du premier groupe ---
+            # --- Vérification Large: Extraction de TOUTES les enseignes du premier groupe ---
             # 1. Trouve le contenu entre la première parenthèse (...)
             match = re.search(r'\(([^)]*)\)', text)
             if not match: continue 
