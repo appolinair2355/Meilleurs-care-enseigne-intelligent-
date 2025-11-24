@@ -467,102 +467,10 @@ class CardPredictor:
         self.consecutive_fails = 0
         self._save_all_data()
 
-    def _verify_prediction_common(self, text: str) -> Optional[Dict]:
-        """Vérifie si une prédiction en attente est validée par le message actuel."""
-        game_number = self.extract_game_number(text)
-        if not game_number: return None
-        
-        # --- ÉTAPE 1 : Filtrage et Collecte (Assuré par la validité structurelle seule) ---
-        is_structurally_valid = self.is_final_result_structurally_valid(text)
-        
-        if not is_structurally_valid:
-            logger.debug("🔍 ⏸️ Filtrage: Structure de résultat final manquante. Ignoré.")
-            return None
-        
-        # COLLECTE DE DONNÉES INTER : Déclenchée si la structure est valide (avant le symbole final)
-        self.collect_inter_data(game_number, text) 
-        logger.info(f"🧠 Jeu {game_number} validé. Données collectées pour l'analyse INTER.")
-
-        # Vérification des prédictions (Édition) doit attendre le symbole final (✅/🔰)
-        if not self.has_completion_indicators(text):
-             logger.debug("🔍 ⏸️ Filtrage: Symbole de succès manquant. Saut de la vérification des prédictions.")
-             return None
-        
-        # --- ÉTAPE 2 : Vérification des prédictions en attente ---
-        
-        for pred_game, pred_data in list(self.predictions.items()):
-            if pred_data['status'] != 'pending': continue
-            
-            offset = game_number - int(pred_game)
-            if not (0 <= offset <= 2): continue # Vérifie N+2, N+3, N+4 (offset 0, 1, 2)
-            
-            predicted = pred_data['predicted_costume']
-            
-            # Extraction de TOUTES les enseignes du premier groupe
-            match = re.search(r'\(([^)]*)\)', text)
-            if not match: continue 
-
-            details = self.extract_card_details(match.group(1))
-            all_found_suits = {suit for _, suit in details} 
-            
-            # Normalisation des cœurs pour la vérification (❤️/♥️)
-            normalized_predicted = predicted.replace("♥️", "❤️") 
-            normalized_found_suits = {s.replace("♥️", "❤️") for s in all_found_suits}
-            
-            
-            # 1. SUCCÈS : L'enseigne prédite est présente
-            if normalized_predicted in normalized_found_suits:
-                symbol = SYMBOL_MAP.get(offset, '✅')
-                msg = f"🔵{pred_game}🔵:Enseigne {predicted} statut :{symbol}"
-                pred_data['status'] = 'won'
-                pred_data['final_message'] = msg
-                self.consecutive_fails = 0
-                self._save_all_data()
-                
-                self.predictions[int(pred_game)] = pred_data
-                return {
-                    'type': 'edit_message', 
-                    'predicted_game': str(pred_game), 
-                    'new_message': msg, 
-                    'message_id_to_edit': pred_data.get('message_id')
-                }
-            
-            # 2. ÉCHEC : Après offset 2, si l'enseigne n'a été trouvée ni en N, N+1, ni N+2
-            elif offset == 2:
-                msg = f"🔵{pred_game}🔵:Enseigne {predicted} statut :❌"
-                pred_data['status'] = 'lost'
-                pred_data['final_message'] = msg
-                
-                # Gestion Automatique de l'IA
-                if pred_data.get('is_inter'):
-                    self.is_inter_mode_active = False 
-                    logger.info("❌ Échec INTER : Désactivation automatique.")
-                else:
-                    self.consecutive_fails += 1
-                    if self.consecutive_fails >= 2:
-                        self.analyze_and_set_smart_rules(force_activate=True) 
-                        logger.info("⚠️ 2 Échecs Statiques : Activation automatique INTER.")
-                
-                self._save_all_data()
-                
-                self.predictions[int(pred_game)] = pred_data
-                return {
-                    'type': 'edit_message', 
-                    'predicted_game': str(pred_game), 
-                    'new_message': msg, 
-                    'message_id_to_edit': pred_data.get('message_id')
-                }
-                
-        return None
-    
-    def verify_prediction_from_edit(self, message: str) -> Optional[Dict]:
-        """Vérification pour un message édité."""
-        return self._verify_prediction_common(message)
+    # --- VERIFICATION LOGIQUE ---
 
     def verify_prediction(self, message: str) -> Optional[Dict]:
-        """Vérification pour un nouveau message."""
-        return self._verify_prediction_common(message)
-    """Verify if a prediction was correct (regular messages)"""
+        """Verify if a prediction was correct (regular messages)"""
         return self._verify_prediction_common(message, is_edited=False)
 
     def verify_prediction_from_edit(self, message: str) -> Optional[Dict]:
@@ -591,98 +499,113 @@ class CardPredictor:
         return costume_found
 
     def _verify_prediction_common(self, message: str, is_edited: bool = False) -> Optional[Dict]:
-        """SYSTÈME DE VÉRIFICATION CORRIGÉ - Vérifie décalage +0, +1, puis ⭕ après +2"""
+        """SYSTÈME DE VÉRIFICATION CORRIGÉ - Vérifie décalage +0, +1, puis échec explicite après +2"""
         game_number = self.extract_game_number(message)
-        if not game_number:
+        if not game_number: return None
+        
+        # --- ÉTAPE 1 : Validation Structurelle et Collecte ---
+        is_structurally_valid = self.is_final_result_structurally_valid(message)
+        
+        if not is_structurally_valid:
+            logger.debug("🔍 ⏸️ Filtrage: Structure de résultat final manquante. Ignoré.")
+            return None
+        
+        # COLLECTE DE DONNÉES INTER (Toujours collecter si structure valide)
+        if not is_edited: # Évite les doublons sur edit
+            self.collect_inter_data(game_number, message) 
+            logger.info(f"🧠 Jeu {game_number} validé. Données collectées pour l'analyse INTER.")
+
+        # --- ÉTAPE 2 : Filtrage Completion ---
+        # On ne vérifie le gain/perte que si le message contient un symbole de fin (✅/🔰)
+        if not self.has_completion_indicators(message):
+            logger.debug("🔍 ⏸️ Pas de vérification - Aucun symbole de succès (✅) trouvé")
+            return None
+
+        # Si aucune prédiction stockée
+        if not self.predictions:
             return None
 
         logger.info(f"🔍 VÉRIFICATION CORRIGÉE - Jeu {game_number} (édité: {is_edited})")
 
-        # SYSTÈME DE VÉRIFICATION: Sur messages édités OU normaux avec symbole succès
-        has_success_symbol = '✅' in message
-        if not has_success_symbol:
-            logger.info(f"🔍 ⏸️ Pas de vérification - Aucun symbole de succès (✅) trouvé")
-            return None
-
-        logger.info(f"🔍 📊 ÉTAT ACTUEL - Prédictions stockées: {list(self.predictions.keys())}")
-        logger.info(f"🔍 📊 ÉTAT ACTUEL - Messages envoyés: {list(self.sent_predictions.keys())}")
-
-        # Si aucune prédiction stockée, pas de vérification possible
-        if not self.predictions:
-            logger.info(f"🔍 ✅ VÉRIFICATION TERMINÉE - Aucune prédiction éligible pour le jeu {game_number}")
-            return None
-
-        # VÉRIFICATION CORRIGÉE: DÉCALAGE +0, +1, PUIS ÉCHEC APRÈS +2
+        # --- ÉTAPE 3 : Vérification ---
+        # On itère sur les prédictions (N, N-1, N-2, etc.)
         for predicted_game in sorted(self.predictions.keys()):
             prediction = self.predictions[predicted_game]
 
             # Vérifier seulement les prédictions en attente
             if prediction.get('status') != 'pending':
-                logger.info(f"🔍 ⏭️ Prédiction {predicted_game} déjà traitée (statut: {prediction.get('status')})")
                 continue
 
             verification_offset = game_number - predicted_game
+            
+            # On ignore les offsets négatifs (jeu futur) ou trop vieux (> 4 par sécurité)
+            if verification_offset < 0 or verification_offset > 5:
+                continue
+
+            predicted_costume = prediction.get('predicted_costume')
+            if not predicted_costume: continue
+
             logger.info(f"🔍 🎯 VÉRIFICATION - Prédiction {predicted_game} vs jeu actuel {game_number}, décalage: {verification_offset}")
 
-            # VÉRIFIER DÉCALAGE +0 ET +1 POUR SUCCÈS
-            if verification_offset == 0 or verification_offset == 1:
-                predicted_costume = prediction.get('predicted_costume')
-                if not predicted_costume:
-                    logger.info(f"🔍 ❌ Pas de costume prédit stocké pour le jeu {predicted_game}")
-                    continue
+            # CAS A: SUCCÈS (Décalage 0, 1 ou 2)
+            # On vérifie si la couleur est présente dans le premier set
+            costume_found = self.check_costume_in_first_parentheses(message, predicted_costume)
+            
+            if costume_found and verification_offset <= 2:
+                # Utilise le SYMBOL_MAP pour le bon emoji (✅0️⃣, ✅1️⃣, ✅2️⃣)
+                status_symbol = SYMBOL_MAP.get(verification_offset, f"✅{verification_offset}️⃣")
+                
+                original_message = f"🔵{predicted_game}🔵:Enseigne {predicted_costume} statut :⏳"
+                updated_message = f"🔵{predicted_game}🔵:Enseigne {predicted_costume} statut :{status_symbol}"
 
-                logger.info(f"🔍 ⚡ VÉRIFICATION DÉCALAGE +{verification_offset} - Jeu {game_number}: Recherche costume {predicted_costume}")
-
-                # Vérifier si le costume prédit apparaît dans le PREMIER parenthèses SEULEMENT
-                costume_found = self.check_costume_in_first_parentheses(message, predicted_costume)
-
-                if costume_found:
-                    # SUCCÈS à décalage +0 ou +1
-                    status_symbol = f"✅{verification_offset}️⃣"
-                    original_message = f"🔵{predicted_game}🔵:{predicted_costume}statut :⏳"
-                    updated_message = f"🔵{predicted_game}🔵:{predicted_costume}statut :{status_symbol}"
-
-                    # Marquer comme traité IMMÉDIATEMENT
-                    prediction['status'] = 'correct'
-                    prediction['verification_count'] = verification_offset
-                    prediction['final_message'] = updated_message
-
-                    logger.info(f"🔍 ⚡ SUCCÈS DÉCALAGE +{verification_offset} - Costume {predicted_costume} détecté")
-                    logger.info(f"🔍 🛑 ARRÊT IMMÉDIAT - Vérification terminée: {status_symbol}")
-                    logger.info(f"🔍 📝 ÉDITION MESSAGE - '{original_message}' → '{updated_message}'")
-
-                    return {
-                        'type': 'edit_message',
-                        'predicted_game': predicted_game,
-                        'new_message': updated_message,
-                        'original_message': original_message
-                    }
-                else:
-                    # ÉCHEC - Costume non trouvé au décalage +0 ou +1
-                    logger.info(f"🔍 ❌ ÉCHEC DÉCALAGE +{verification_offset} - Costume {predicted_costume} non trouvé")
-                    # Continuer à vérifier le prochain décalage (si applicable)
-                    continue
-
-            # ÉCHEC APRÈS +2 (quand décalage >= 2)
-            elif verification_offset >= 2:
-                predicted_costume = prediction.get('predicted_costume', '')
-                original_message = f"🔵{predicted_game}🔵:{predicted_costume}statut :⏳"
-                updated_message = f"🔵{predicted_game}🔵:{predicted_costume}statut :⭕"
-
-                # Marquer comme échec APRÈS +2
-                prediction['status'] = 'failed'
+                # Marquer comme traité
+                prediction['status'] = 'won'
+                prediction['verification_count'] = verification_offset
                 prediction['final_message'] = updated_message
+                self.consecutive_fails = 0 # Reset échecs
+                self._save_all_data()
 
-                logger.info(f"🔍 ❌ ÉCHEC APRÈS +2 - Décalage {verification_offset} ≥ 2")
-                logger.info(f"🔍 🛑 ARRÊT ÉCHEC - Prédiction {predicted_game} marquée: ⭕")
+                logger.info(f"🔍 ⚡ SUCCÈS DÉCALAGE +{verification_offset} - Costume {predicted_costume} détecté")
+                
                 return {
                     'type': 'edit_message',
-                    'predicted_game': predicted_game,
+                    'predicted_game': str(predicted_game),
                     'new_message': updated_message,
-                    'original_message': original_message
+                    'message_id_to_edit': prediction.get('message_id')
                 }
 
-        logger.info(f"🔍 ✅ VÉRIFICATION TERMINÉE - Aucune prédiction éligible pour le jeu {game_number}")
+            # CAS B: ÉCHEC (Seulement confirmé si on a dépassé l'offset 2)
+            elif verification_offset >= 2:
+                # Si on est à l'offset 2 (ou plus) et qu'on n'a pas trouvé le costume ci-dessus
+                status_symbol = "❌" # ou ⭕ selon préférence, mais standardisé ici
+                
+                updated_message = f"🔵{predicted_game}🔵:Enseigne {predicted_costume} statut :{status_symbol}"
+
+                # Marquer comme échec
+                prediction['status'] = 'lost'
+                prediction['final_message'] = updated_message
+                
+                # Gestion Automatique de l'IA (Inter/Static switch)
+                if prediction.get('is_inter'):
+                    self.is_inter_mode_active = False 
+                    logger.info("❌ Échec INTER : Désactivation automatique.")
+                else:
+                    self.consecutive_fails += 1
+                    if self.consecutive_fails >= 2:
+                        self.analyze_and_set_smart_rules(force_activate=True) 
+                        logger.info("⚠️ 2 Échecs Statiques : Activation automatique INTER.")
+                
+                self._save_all_data()
+
+                logger.info(f"🔍 ❌ ÉCHEC APRÈS +2 - Décalage {verification_offset} ≥ 2")
+                
+                return {
+                    'type': 'edit_message',
+                    'predicted_game': str(predicted_game),
+                    'new_message': updated_message,
+                    'message_id_to_edit': prediction.get('message_id')
+                }
+
         return None
 
 # Global instance
