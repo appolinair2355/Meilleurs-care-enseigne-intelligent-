@@ -163,19 +163,27 @@ class CardPredictor:
         return any(indicator in text for indicator in completion_indicators)
         
     def is_final_result_structurally_valid(self, text: str) -> bool:
-        """Vérifie si la structure du message correspond à un format de résultat final connu (Normal ou Édité)."""
+        """
+        Vérifie si la structure du message correspond à un format de résultat final connu.
+        INCLUT la validation pour les messages finalisés avec #T.
+        """
         matches = self._extract_parentheses_content(text)
         num_sections = len(matches)
 
         if num_sections < 2:
             return False
 
-        # --- Message Normal (Règle 1) ---
+        # --- Règle pour les messages finalisés (#T) ---
+        if '#T' in text and num_sections >= 2:
+            logger.debug("🔍 VALIDATION STRUCTURALE: Finalisé (#T) avec sections.")
+            return True
+
+        # --- Message Normal (Règle 1: 🔵#R) ---
         if '🔵#R' in text and num_sections == 2:
             logger.debug("🔍 VALIDATION STRUCTURALE: Normal (🔵#R).")
             return True
 
-        # --- Messages Édités (Règles 2, 3, 4) ---
+        # --- Messages Édités (Règles 2, 3, 4: basé sur le compte de cartes 3/2, 3/3, 2/3) ---
         if num_sections == 2:
             content_1 = matches[0]
             content_2 = matches[1]
@@ -183,19 +191,11 @@ class CardPredictor:
             count_1 = self._count_cards_in_content(content_1)
             count_2 = self._count_cards_in_content(content_2)
 
-            # Format 3/2
-            if count_1 == 3 and count_2 == 2:
-                logger.debug("🔍 VALIDATION STRUCTURALE: Édité (3 cartes / 2 cartes).")
-                return True
-
-            # Format 3/3
-            if count_1 == 3 and count_2 == 3:
-                logger.debug("🔍 VALIDATION STRUCTURALE: Édité (3 cartes / 3 cartes).")
-                return True
-
-            # Format 2/3
-            if count_1 == 2 and count_2 == 3:
-                logger.debug("🔍 VALIDATION STRUCTURALE: Édité (2 cartes / 3 cartes).")
+            # Formats acceptés
+            if (count_1 == 3 and count_2 == 2) or \
+               (count_1 == 3 and count_2 == 3) or \
+               (count_1 == 2 and count_2 == 3):
+                logger.debug(f"🔍 VALIDATION STRUCTURALE: Édité ({count_1} cartes / {count_2} cartes).")
                 return True
 
         logger.debug(f"🔍 VALIDATION STRUCTURALE: Échec. Sections: {num_sections}.")
@@ -276,13 +276,11 @@ class CardPredictor:
         """
         Analyse les données pour trouver les Top 2 règles pour CHAQUE enseigne déclencheuse.
         """
-        # Structure pour regrouper les résultats par Enseigne du Déclencheur
-        # Ex: {'♦️': {'10♦️': {'♠️': 5, '❤️': 2}, '9♦️': {...}}, '♠️': {...}}
         suit_groups = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
         
         for entry in self.inter_data:
-            trig = entry['declencheur'] # Ex: "10♦️"
-            result_suit = entry['result_suit'] # Ex: "♠️" ou "♥️"
+            trig = entry['declencheur'] 
+            result_suit = entry['result_suit'] 
             
             # Extrait l'enseigne du déclencheur (le dernier caractère)
             trigger_suit = trig[-1].replace("❤️", "♥️")
@@ -323,8 +321,10 @@ class CardPredictor:
             
         self.last_analysis_time = time.time()
         self._save_all_data()
+
+        logger.info(f"🧠 Analyse terminée. Règles trouvées: {len(self.smart_rules)}. Mode actif: {self.is_inter_mode_active}")
         
-        # Notification Admin (Mise à jour pour afficher les 4 enseignes)
+        # Notification Admin
         if self.active_admin_chat_id and self.telegram_message_sender and (force_activate or self.is_inter_mode_active):
             msg = "🧠 **MISE À JOUR INTER (Top 2 par Enseigne)**\n\n"
             
@@ -332,25 +332,32 @@ class CardPredictor:
             for rule in self.smart_rules:
                 display_groups[rule['trigger_suit']].append(rule)
             
-            # Affichage structuré
-            for suit in ['♠️', '♥️', '♦️', '♣️']:
-                 if suit in display_groups:
-                    msg += f"**{suit} (Règles Déclencheur):**\n"
-                    for r in display_groups[suit]:
-                        msg += f"🥇 {r['trigger']} → {r['predict']} (x{r['count']})\n"
+            if self.smart_rules:
+                # Affichage structuré
+                for suit in ['♠️', '♥️', '♦️', '♣️']:
+                     if suit in display_groups:
+                        msg += f"**{suit} (Règles Déclencheur):**\n"
+                        for r in display_groups[suit]:
+                            msg += f"🥇 {r['trigger']} → {r['predict']} (x{r['count']})\n"
             
             if not self.smart_rules:
-                msg += "Aucune règle fiable trouvée pour le moment."
+                msg += f"Aucune règle fiable trouvée pour le moment. ({len(self.inter_data)} données collectées)"
                 
             self.telegram_message_sender(self.active_admin_chat_id, msg)
 
+    # RESTAURÉ : Le mode INTER doit se mettre à jour toutes les 30 minutes s'il est actif.
     def check_and_update_rules(self):
         """Vérification périodique (30 minutes)."""
         if self.is_inter_mode_active and (time.time() - self.last_analysis_time > 1800):
+            logger.info("🧠 Mise à jour INTER périodique (30 min).")
             self.analyze_and_set_smart_rules(chat_id=self.active_admin_chat_id)
 
     def get_inter_status(self, force_reanalyze: bool = False) -> Tuple[str, Optional[Dict]]:
-        if force_reanalyze: self.analyze_and_set_smart_rules()
+        """
+        Affiche l'état du mode INTER. Exécute l'analyse si demandé (via le bouton 'Appliquer').
+        """
+        # Exécute l'analyse si on demande le statut via le bouton (force_reanalyze=True)
+        if force_reanalyze: self.analyze_and_set_smart_rules(force_activate=True) # Force l'analyse et l'activation
         
         msg = f"**🧠 ETAT DU MODE INTELLIGENT**\n\n"
         msg += f"**Actif :** {'✅ OUI' if self.is_inter_mode_active else '❌ NON'}\n"
@@ -367,11 +374,12 @@ class CardPredictor:
             # Affichage structuré
             for suit in ['♠️', '♥️', '♦️', '♣️']:
                  if suit in display_groups:
-                    msg += f"**{suit} (Règles Déclencheur):**\n"
+                    msg += f"**{suit} (Déclencheur):**\n"
                     for r in display_groups[suit]:
                         msg += f"• Si **{r['trigger']}** (N-2) → Prédire **{r['predict']}** (x{r['count']})\n"
         else:
-            msg += "⚠️ Pas assez de données pour former des règles."
+            # Si aucune règle n'est trouvée, affiche l'état exact de la collecte.
+            msg += f"⚠️ Pas assez de données fiables pour former des règles (0 règles trouvées)."
             
         kb = {'inline_keyboard': [
             [{'text': '✅ Activer / Mettre à jour', 'callback_data': 'inter_apply'}],
@@ -398,7 +406,7 @@ class CardPredictor:
         return False
 
     def should_predict(self, message: str) -> Tuple[bool, Optional[int], Optional[str]]:
-        # 1. Vérif Périodique
+        # 1. Vérif Périodique (RESTAURÉ)
         self.check_and_update_rules()
         
         game_number = self.extract_game_number(message)
@@ -420,7 +428,7 @@ class CardPredictor:
         
         predicted_suit = None
 
-                # A. PRIORITÉ 1 : MODE INTER
+        # A. PRIORITÉ 1 : MODE INTER
         if self.is_inter_mode_active and self.smart_rules:
             for rule in self.smart_rules:
                 if rule['trigger'] == first_card:
@@ -499,11 +507,12 @@ class CardPredictor:
         return costume_found
 
     def _verify_prediction_common(self, message: str, is_edited: bool = False) -> Optional[Dict]:
-        """SYSTÈME DE VÉRIFICATION CORRIGÉ - Vérifie décalage +0, +1, puis échec explicite après +2"""
+        """SYSTÈME DE VÉRIFICATION CORRIGÉE - Vérifie décalage +0, +1, puis échec explicite après +2"""
         game_number = self.extract_game_number(message)
         if not game_number: return None
         
         # --- ÉTAPE 1 : Validation Structurelle et Collecte ---
+        # Cette fonction gère désormais les messages #T, #R, #X ainsi que les formats édités.
         is_structurally_valid = self.is_final_result_structurally_valid(message)
         
         if not is_structurally_valid:
@@ -526,6 +535,8 @@ class CardPredictor:
             return None
 
         logger.info(f"🔍 VÉRIFICATION CORRIGÉE - Jeu {game_number} (édité: {is_edited})")
+        
+        verification_result = None
 
         # --- ÉTAPE 3 : Vérification ---
         # On itère sur les prédictions (N, N-1, N-2, etc.)
@@ -538,7 +549,7 @@ class CardPredictor:
 
             verification_offset = game_number - predicted_game
             
-            # On ignore les offsets négatifs (jeu futur) ou trop vieux (> 4 par sécurité)
+            # On ignore les offsets négatifs (jeu futur) ou trop vieux (> 5 par sécurité)
             if verification_offset < 0 or verification_offset > 5:
                 continue
 
@@ -548,14 +559,12 @@ class CardPredictor:
             logger.info(f"🔍 🎯 VÉRIFICATION - Prédiction {predicted_game} vs jeu actuel {game_number}, décalage: {verification_offset}")
 
             # CAS A: SUCCÈS (Décalage 0, 1 ou 2)
-            # On vérifie si la couleur est présente dans le premier set
             costume_found = self.check_costume_in_first_parentheses(message, predicted_costume)
             
             if costume_found and verification_offset <= 2:
                 # Utilise le SYMBOL_MAP pour le bon emoji (✅0️⃣, ✅1️⃣, ✅2️⃣)
                 status_symbol = SYMBOL_MAP.get(verification_offset, f"✅{verification_offset}️⃣")
                 
-                original_message = f"🔵{predicted_game}🔵:Enseigne {predicted_costume} statut :⏳"
                 updated_message = f"🔵{predicted_game}🔵:Enseigne {predicted_costume} statut :{status_symbol}"
 
                 # Marquer comme traité
@@ -567,17 +576,18 @@ class CardPredictor:
 
                 logger.info(f"🔍 ⚡ SUCCÈS DÉCALAGE +{verification_offset} - Costume {predicted_costume} détecté")
                 
-                return {
+                verification_result = {
                     'type': 'edit_message',
                     'predicted_game': str(predicted_game),
                     'new_message': updated_message,
                     'message_id_to_edit': prediction.get('message_id')
                 }
+                break # Arrêter après le succès
 
             # CAS B: ÉCHEC (Seulement confirmé si on a dépassé l'offset 2)
             elif verification_offset >= 2:
                 # Si on est à l'offset 2 (ou plus) et qu'on n'a pas trouvé le costume ci-dessus
-                status_symbol = "❌" # ou ⭕ selon préférence, mais standardisé ici
+                status_symbol = "❌" 
                 
                 updated_message = f"🔵{predicted_game}🔵:Enseigne {predicted_costume} statut :{status_symbol}"
 
@@ -592,6 +602,7 @@ class CardPredictor:
                 else:
                     self.consecutive_fails += 1
                     if self.consecutive_fails >= 2:
+                        # Force l'activation et l'analyse pour trouver de nouvelles règles
                         self.analyze_and_set_smart_rules(force_activate=True) 
                         logger.info("⚠️ 2 Échecs Statiques : Activation automatique INTER.")
                 
@@ -599,14 +610,16 @@ class CardPredictor:
 
                 logger.info(f"🔍 ❌ ÉCHEC APRÈS +2 - Décalage {verification_offset} ≥ 2")
                 
-                return {
+                verification_result = {
                     'type': 'edit_message',
                     'predicted_game': str(predicted_game),
                     'new_message': updated_message,
                     'message_id_to_edit': prediction.get('message_id')
                 }
+                break # Arrêter après l'échec
 
-        return None
+        # L'analyse est déclenchée soit par le timer, soit par l'échec ci-dessus (pour le forcer).
+        return verification_result
 
 # Global instance
 card_predictor = CardPredictor()
