@@ -29,7 +29,7 @@ class Config:
         self.WEBHOOK_URL = self._determine_webhook_url()
         logger.info(f"🔗 Webhook URL configuré: {self.WEBHOOK_URL}")
 
-        # Port pour le serveur (utilise PORT env ou 10000 par défaut pour Render)
+        # Port pour le serveur (utilise PORT env ou 5000 par défaut pour Replit)
         self.PORT = int(os.getenv('PORT') or 10000)
         
         # Canaux (Les vraies valeurs sont gérées par CardPredictor)
@@ -68,7 +68,7 @@ class Config:
             elif os.getenv('RENDER'):
                 logger.warning("⚠️ Sur Render.com, WEBHOOK_URL doit être défini manuellement dans les variables d'environnement")
         
-        return webhook_url
+        return webhook_url or ""
     
     def _validate_config(self) -> None:
         """Valide les paramètres de configuration."""
