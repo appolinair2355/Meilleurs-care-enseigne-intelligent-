@@ -1,0 +1,646 @@
+[
+    {
+        "numero_resultat": 204,
+        "declencheur": "8\u2666\ufe0f",
+        "numero_declencheur": 202,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T03:23:10.980222"
+    },
+    {
+        "numero_resultat": 205,
+        "declencheur": "2\u2665\ufe0f",
+        "numero_declencheur": 203,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T03:24:33.280292"
+    },
+    {
+        "numero_resultat": 206,
+        "declencheur": "8\u2666\ufe0f",
+        "numero_declencheur": 204,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T03:25:34.677855"
+    },
+    {
+        "numero_resultat": 207,
+        "declencheur": "Q\u2663\ufe0f",
+        "numero_declencheur": 205,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T03:26:32.096346"
+    },
+    {
+        "numero_resultat": 208,
+        "declencheur": "2\u2666\ufe0f",
+        "numero_declencheur": 206,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T03:27:07.862803"
+    },
+    {
+        "numero_resultat": 209,
+        "declencheur": "Q\u2665\ufe0f",
+        "numero_declencheur": 207,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T03:28:35.748687"
+    },
+    {
+        "numero_resultat": 210,
+        "declencheur": "Q\u2660\ufe0f",
+        "numero_declencheur": 208,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T03:29:31.133567"
+    },
+    {
+        "numero_resultat": 211,
+        "declencheur": "10\u2666\ufe0f",
+        "numero_declencheur": 209,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T03:30:10.632630"
+    },
+    {
+        "numero_resultat": 212,
+        "declencheur": "7\u2666\ufe0f",
+        "numero_declencheur": 210,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T03:31:12.512712"
+    },
+    {
+        "numero_resultat": 213,
+        "declencheur": "8\u2666\ufe0f",
+        "numero_declencheur": 211,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T03:32:37.716060"
+    },
+    {
+        "numero_resultat": 214,
+        "declencheur": "5\u2666\ufe0f",
+        "numero_declencheur": 212,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T03:33:31.843538"
+    },
+    {
+        "numero_resultat": 215,
+        "declencheur": "5\u2663\ufe0f",
+        "numero_declencheur": 213,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T03:34:07.923093"
+    },
+    {
+        "numero_resultat": 216,
+        "declencheur": "5\u2665\ufe0f",
+        "numero_declencheur": 214,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T03:35:37.077726"
+    },
+    {
+        "numero_resultat": 217,
+        "declencheur": "9\u2660\ufe0f",
+        "numero_declencheur": 215,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T03:36:30.996060"
+    },
+    {
+        "numero_resultat": 218,
+        "declencheur": "6\u2666\ufe0f",
+        "numero_declencheur": 216,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T03:37:31.280923"
+    },
+    {
+        "numero_resultat": 219,
+        "declencheur": "J\u2666\ufe0f",
+        "numero_declencheur": 217,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T03:38:33.871687"
+    },
+    {
+        "numero_resultat": 220,
+        "declencheur": "7\u2663\ufe0f",
+        "numero_declencheur": 218,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T03:39:08.864180"
+    },
+    {
+        "numero_resultat": 221,
+        "declencheur": "9\u2665\ufe0f",
+        "numero_declencheur": 219,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T03:40:31.746840"
+    },
+    {
+        "numero_resultat": 222,
+        "declencheur": "A\u2660\ufe0f",
+        "numero_declencheur": 220,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T03:41:31.745080"
+    },
+    {
+        "numero_resultat": 223,
+        "declencheur": "9\u2665\ufe0f",
+        "numero_declencheur": 221,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T03:42:36.321019"
+    },
+    {
+        "numero_resultat": 224,
+        "declencheur": "A\u2666\ufe0f",
+        "numero_declencheur": 222,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T03:43:36.670564"
+    },
+    {
+        "numero_resultat": 225,
+        "declencheur": "8\u2660\ufe0f",
+        "numero_declencheur": 223,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T03:44:31.127871"
+    },
+    {
+        "numero_resultat": 226,
+        "declencheur": "J\u2666\ufe0f",
+        "numero_declencheur": 224,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T03:45:34.535104"
+    },
+    {
+        "numero_resultat": 227,
+        "declencheur": "Q\u2663\ufe0f",
+        "numero_declencheur": 225,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T03:46:29.764151"
+    },
+    {
+        "numero_resultat": 228,
+        "declencheur": "4\u2665\ufe0f",
+        "numero_declencheur": 226,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T03:47:11.725292"
+    },
+    {
+        "numero_resultat": 229,
+        "declencheur": "7\u2660\ufe0f",
+        "numero_declencheur": 227,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T03:48:05.230336"
+    },
+    {
+        "numero_resultat": 230,
+        "declencheur": "8\u2666\ufe0f",
+        "numero_declencheur": 228,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T03:49:09.284277"
+    },
+    {
+        "numero_resultat": 231,
+        "declencheur": "7\u2663\ufe0f",
+        "numero_declencheur": 229,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T03:50:11.023739"
+    },
+    {
+        "numero_resultat": 232,
+        "declencheur": "7\u2660\ufe0f",
+        "numero_declencheur": 230,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T03:51:12.054648"
+    },
+    {
+        "numero_resultat": 233,
+        "declencheur": "5\u2666\ufe0f",
+        "numero_declencheur": 231,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T03:52:11.451888"
+    },
+    {
+        "numero_resultat": 234,
+        "declencheur": "8\u2666\ufe0f",
+        "numero_declencheur": 232,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T03:53:12.949423"
+    },
+    {
+        "numero_resultat": 235,
+        "declencheur": "10\u2665\ufe0f",
+        "numero_declencheur": 233,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T03:54:06.197876"
+    },
+    {
+        "numero_resultat": 236,
+        "declencheur": "Q\u2663\ufe0f",
+        "numero_declencheur": 234,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T03:55:12.364702"
+    },
+    {
+        "numero_resultat": 237,
+        "declencheur": "2\u2660\ufe0f",
+        "numero_declencheur": 235,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T03:56:16.166505"
+    },
+    {
+        "numero_resultat": 238,
+        "declencheur": "5\u2663\ufe0f",
+        "numero_declencheur": 236,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T03:57:10.436984"
+    },
+    {
+        "numero_resultat": 239,
+        "declencheur": "7\u2663\ufe0f",
+        "numero_declencheur": 237,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T03:58:10.064174"
+    },
+    {
+        "numero_resultat": 240,
+        "declencheur": "7\u2663\ufe0f",
+        "numero_declencheur": 238,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T03:59:10.925114"
+    },
+    {
+        "numero_resultat": 241,
+        "declencheur": "6\u2660\ufe0f",
+        "numero_declencheur": 239,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T04:00:12.748285"
+    },
+    {
+        "numero_resultat": 242,
+        "declencheur": "K\u2663\ufe0f",
+        "numero_declencheur": 240,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T04:01:11.302802"
+    },
+    {
+        "numero_resultat": 243,
+        "declencheur": "Q\u2665\ufe0f",
+        "numero_declencheur": 241,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T04:02:09.775742"
+    },
+    {
+        "numero_resultat": 244,
+        "declencheur": "Q\u2666\ufe0f",
+        "numero_declencheur": 242,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T04:03:10.431094"
+    },
+    {
+        "numero_resultat": 245,
+        "declencheur": "Q\u2663\ufe0f",
+        "numero_declencheur": 243,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T04:04:10.823876"
+    },
+    {
+        "numero_resultat": 246,
+        "declencheur": "3\u2663\ufe0f",
+        "numero_declencheur": 244,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T04:05:13.164001"
+    },
+    {
+        "numero_resultat": 247,
+        "declencheur": "Q\u2660\ufe0f",
+        "numero_declencheur": 245,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T04:06:10.717259"
+    },
+    {
+        "numero_resultat": 248,
+        "declencheur": "7\u2665\ufe0f",
+        "numero_declencheur": 246,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T04:07:11.652171"
+    },
+    {
+        "numero_resultat": 249,
+        "declencheur": "A\u2660\ufe0f",
+        "numero_declencheur": 247,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T04:08:06.627630"
+    },
+    {
+        "numero_resultat": 250,
+        "declencheur": "Q\u2660\ufe0f",
+        "numero_declencheur": 248,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T04:09:07.985129"
+    },
+    {
+        "numero_resultat": 251,
+        "declencheur": "9\u2663\ufe0f",
+        "numero_declencheur": 249,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T04:10:13.503985"
+    },
+    {
+        "numero_resultat": 252,
+        "declencheur": "3\u2665\ufe0f",
+        "numero_declencheur": 250,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T04:11:12.664680"
+    },
+    {
+        "numero_resultat": 253,
+        "declencheur": "3\u2663\ufe0f",
+        "numero_declencheur": 251,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T04:12:11.395122"
+    },
+    {
+        "numero_resultat": 254,
+        "declencheur": "10\u2665\ufe0f",
+        "numero_declencheur": 252,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T04:13:11.634075"
+    },
+    {
+        "numero_resultat": 255,
+        "declencheur": "Q\u2663\ufe0f",
+        "numero_declencheur": 253,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T04:14:15.564590"
+    },
+    {
+        "numero_resultat": 256,
+        "declencheur": "A\u2660\ufe0f",
+        "numero_declencheur": 254,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T04:15:17.816953"
+    },
+    {
+        "numero_resultat": 257,
+        "declencheur": "4\u2660\ufe0f",
+        "numero_declencheur": 255,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T04:16:08.660164"
+    },
+    {
+        "numero_resultat": 258,
+        "declencheur": "5\u2665\ufe0f",
+        "numero_declencheur": 256,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T04:17:14.584495"
+    },
+    {
+        "numero_resultat": 259,
+        "declencheur": "10\u2665\ufe0f",
+        "numero_declencheur": 257,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T04:18:10.301767"
+    },
+    {
+        "numero_resultat": 260,
+        "declencheur": "7\u2663\ufe0f",
+        "numero_declencheur": 258,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T04:19:08.308501"
+    },
+    {
+        "numero_resultat": 261,
+        "declencheur": "8\u2666\ufe0f",
+        "numero_declencheur": 259,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T04:20:09.499317"
+    },
+    {
+        "numero_resultat": 262,
+        "declencheur": "3\u2665\ufe0f",
+        "numero_declencheur": 260,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T04:21:11.813897"
+    },
+    {
+        "numero_resultat": 263,
+        "declencheur": "3\u2660\ufe0f",
+        "numero_declencheur": 261,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T04:22:09.626395"
+    },
+    {
+        "numero_resultat": 264,
+        "declencheur": "8\u2663\ufe0f",
+        "numero_declencheur": 262,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T04:23:11.608259"
+    },
+    {
+        "numero_resultat": 265,
+        "declencheur": "9\u2666\ufe0f",
+        "numero_declencheur": 263,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T04:24:12.601348"
+    },
+    {
+        "numero_resultat": 266,
+        "declencheur": "8\u2660\ufe0f",
+        "numero_declencheur": 264,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T04:25:16.072873"
+    },
+    {
+        "numero_resultat": 267,
+        "declencheur": "Q\u2663\ufe0f",
+        "numero_declencheur": 265,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T04:26:09.727125"
+    },
+    {
+        "numero_resultat": 283,
+        "declencheur": "J\u2666\ufe0f",
+        "numero_declencheur": 281,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T04:43:21.340826"
+    },
+    {
+        "numero_resultat": 284,
+        "declencheur": "10\u2663\ufe0f",
+        "numero_declencheur": 282,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T04:43:21.937103"
+    },
+    {
+        "numero_resultat": 285,
+        "declencheur": "J\u2665\ufe0f",
+        "numero_declencheur": 283,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T04:44:11.662510"
+    },
+    {
+        "numero_resultat": 286,
+        "declencheur": "4\u2666\ufe0f",
+        "numero_declencheur": 284,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T04:45:06.036604"
+    },
+    {
+        "numero_resultat": 287,
+        "declencheur": "7\u2660\ufe0f",
+        "numero_declencheur": 285,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T04:46:15.215557"
+    },
+    {
+        "numero_resultat": 288,
+        "declencheur": "K\u2663\ufe0f",
+        "numero_declencheur": 286,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T04:47:23.471233"
+    },
+    {
+        "numero_resultat": 289,
+        "declencheur": "5\u2663\ufe0f",
+        "numero_declencheur": 287,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T04:48:09.490421"
+    },
+    {
+        "numero_resultat": 290,
+        "declencheur": "10\u2666\ufe0f",
+        "numero_declencheur": 288,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T04:49:06.456729"
+    },
+    {
+        "numero_resultat": 291,
+        "declencheur": "7\u2665\ufe0f",
+        "numero_declencheur": 289,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T04:50:11.418154"
+    },
+    {
+        "numero_resultat": 292,
+        "declencheur": "4\u2660\ufe0f",
+        "numero_declencheur": 290,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T04:51:09.206554"
+    },
+    {
+        "numero_resultat": 293,
+        "declencheur": "3\u2665\ufe0f",
+        "numero_declencheur": 291,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T04:52:15.118855"
+    },
+    {
+        "numero_resultat": 294,
+        "declencheur": "4\u2663\ufe0f",
+        "numero_declencheur": 292,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T04:53:14.155940"
+    },
+    {
+        "numero_resultat": 295,
+        "declencheur": "7\u2665\ufe0f",
+        "numero_declencheur": 293,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T04:54:06.851510"
+    },
+    {
+        "numero_resultat": 296,
+        "declencheur": "2\u2665\ufe0f",
+        "numero_declencheur": 294,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T04:55:12.347466"
+    },
+    {
+        "numero_resultat": 297,
+        "declencheur": "7\u2663\ufe0f",
+        "numero_declencheur": 295,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T04:56:08.155443"
+    },
+    {
+        "numero_resultat": 298,
+        "declencheur": "2\u2666\ufe0f",
+        "numero_declencheur": 296,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T04:57:07.106993"
+    },
+    {
+        "numero_resultat": 299,
+        "declencheur": "6\u2666\ufe0f",
+        "numero_declencheur": 297,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T04:58:09.293142"
+    },
+    {
+        "numero_resultat": 300,
+        "declencheur": "7\u2666\ufe0f",
+        "numero_declencheur": 298,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T04:59:08.743381"
+    },
+    {
+        "numero_resultat": 301,
+        "declencheur": "5\u2665\ufe0f",
+        "numero_declencheur": 299,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T05:00:12.399882"
+    },
+    {
+        "numero_resultat": 302,
+        "declencheur": "8\u2663\ufe0f",
+        "numero_declencheur": 300,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T05:01:11.698328"
+    },
+    {
+        "numero_resultat": 303,
+        "declencheur": "9\u2660\ufe0f",
+        "numero_declencheur": 301,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T05:02:11.187010"
+    },
+    {
+        "numero_resultat": 304,
+        "declencheur": "9\u2665\ufe0f",
+        "numero_declencheur": 302,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T05:03:13.981090"
+    },
+    {
+        "numero_resultat": 305,
+        "declencheur": "9\u2663\ufe0f",
+        "numero_declencheur": 303,
+        "result_suit": "\u2665\ufe0f",
+        "date": "2025-11-25T05:04:14.894479"
+    },
+    {
+        "numero_resultat": 306,
+        "declencheur": "7\u2665\ufe0f",
+        "numero_declencheur": 304,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T05:05:12.261681"
+    },
+    {
+        "numero_resultat": 307,
+        "declencheur": "K\u2665\ufe0f",
+        "numero_declencheur": 305,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-25T05:06:09.702471"
+    },
+    {
+        "numero_resultat": 316,
+        "declencheur": "10\u2663\ufe0f",
+        "numero_declencheur": 314,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-25T05:15:13.003530"
+    },
+    {
+        "numero_resultat": 317,
+        "declencheur": "9\u2665\ufe0f",
+        "numero_declencheur": 315,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T05:16:12.522959"
+    },
+    {
+        "numero_resultat": 318,
+        "declencheur": "A\u2663\ufe0f",
+        "numero_declencheur": 316,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-25T05:17:08.828234"
+    }
+]

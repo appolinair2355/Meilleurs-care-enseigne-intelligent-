@@ -1,0 +1,128 @@
+{
+    "198": {
+        "predicted_costume": "\u2666\ufe0f",
+        "status": "lost",
+        "predicted_from": 196,
+        "message_text": "\ud83d\udd35198\ud83d\udd35:Enseigne \u2666\ufe0f statut :\u23f3",
+        "message_id": 141,
+        "is_inter": false,
+        "final_message": "\ud83d\udd35198\ud83d\udd35:Enseigne \u2666\ufe0f statut :\u274c"
+    },
+    "231": {
+        "predicted_costume": "\u2663\ufe0f",
+        "status": "won",
+        "predicted_from": 229,
+        "message_text": "\ud83d\udd35231\ud83d\udd35:Enseigne \u2663\ufe0f statut :\u23f3",
+        "message_id": 142,
+        "is_inter": true,
+        "verification_count": 0,
+        "final_message": "\ud83d\udd35231\ud83d\udd35:Enseigne \u2663\ufe0f statut :\u27050\ufe0f\u20e3"
+    },
+    "239": {
+        "predicted_costume": "\u2663\ufe0f",
+        "status": "won",
+        "predicted_from": 237,
+        "message_text": "\ud83d\udd35239\ud83d\udd35:Enseigne \u2663\ufe0f statut :\u23f3",
+        "message_id": 143,
+        "is_inter": true,
+        "verification_count": 0,
+        "final_message": "\ud83d\udd35239\ud83d\udd35:Enseigne \u2663\ufe0f statut :\u27050\ufe0f\u20e3"
+    },
+    "251": {
+        "predicted_costume": "\u2764\ufe0f",
+        "status": "won",
+        "predicted_from": 249,
+        "message_text": "\ud83d\udd35251\ud83d\udd35:Enseigne \u2764\ufe0f statut :\u23f3",
+        "message_id": 144,
+        "is_inter": false,
+        "verification_count": 1,
+        "final_message": "\ud83d\udd35251\ud83d\udd35:Enseigne \u2764\ufe0f statut :\u27051\ufe0f\u20e3"
+    },
+    "260": {
+        "predicted_costume": "\u2663\ufe0f",
+        "status": "won",
+        "predicted_from": 258,
+        "message_text": "\ud83d\udd35260\ud83d\udd35:Enseigne \u2663\ufe0f statut :\u23f3",
+        "message_id": 145,
+        "is_inter": false,
+        "verification_count": 1,
+        "final_message": "\ud83d\udd35260\ud83d\udd35:Enseigne \u2663\ufe0f statut :\u27051\ufe0f\u20e3"
+    },
+    "264": {
+        "predicted_costume": "\u2660\ufe0f",
+        "status": "won",
+        "predicted_from": 262,
+        "message_text": "\ud83d\udd35264\ud83d\udd35:Enseigne \u2660\ufe0f statut :\u23f3",
+        "message_id": 146,
+        "is_inter": false,
+        "verification_count": 0,
+        "final_message": "\ud83d\udd35264\ud83d\udd35:Enseigne \u2660\ufe0f statut :\u27050\ufe0f\u20e3"
+    },
+    "268": {
+        "predicted_costume": "\u2660\ufe0f",
+        "status": "pending",
+        "predicted_from": 266,
+        "message_text": "\ud83d\udd35268\ud83d\udd35:Enseigne \u2660\ufe0f statut :\u23f3",
+        "message_id": 147,
+        "is_inter": false
+    },
+    "287": {
+        "predicted_costume": "\u2660\ufe0f",
+        "status": "won",
+        "predicted_from": 285,
+        "message_text": "\ud83d\udd35287\ud83d\udd35:Enseigne \u2660\ufe0f statut :\u23f3",
+        "message_id": 150,
+        "is_inter": false,
+        "verification_count": 0,
+        "final_message": "\ud83d\udd35287\ud83d\udd35:Enseigne \u2660\ufe0f statut :\u27050\ufe0f\u20e3"
+    },
+    "290": {
+        "predicted_costume": "\u2660\ufe0f",
+        "status": "won",
+        "predicted_from": 288,
+        "message_text": "\ud83d\udd35290\ud83d\udd35:Enseigne \u2660\ufe0f statut :\u23f3",
+        "message_id": 151,
+        "is_inter": false,
+        "verification_count": 0,
+        "final_message": "\ud83d\udd35290\ud83d\udd35:Enseigne \u2660\ufe0f statut :\u27050\ufe0f\u20e3"
+    },
+    "297": {
+        "predicted_costume": "\u2660\ufe0f",
+        "status": "won",
+        "predicted_from": 295,
+        "message_text": "\ud83d\udd35297\ud83d\udd35:Enseigne \u2660\ufe0f statut :\u23f3",
+        "message_id": 152,
+        "is_inter": true,
+        "verification_count": 1,
+        "final_message": "\ud83d\udd35297\ud83d\udd35:Enseigne \u2660\ufe0f statut :\u27051\ufe0f\u20e3"
+    },
+    "302": {
+        "predicted_costume": "\u2660\ufe0f",
+        "status": "won",
+        "predicted_from": 300,
+        "message_text": "\ud83d\udd35302\ud83d\udd35:Enseigne \u2660\ufe0f statut :\u23f3",
+        "message_id": 153,
+        "is_inter": true,
+        "verification_count": 0,
+        "final_message": "\ud83d\udd35302\ud83d\udd35:Enseigne \u2660\ufe0f statut :\u27050\ufe0f\u20e3"
+    },
+    "305": {
+        "predicted_costume": "\u2764\ufe0f",
+        "status": "won",
+        "predicted_from": 303,
+        "message_text": "\ud83d\udd35305\ud83d\udd35:Enseigne \u2764\ufe0f statut :\u23f3",
+        "message_id": 154,
+        "is_inter": true,
+        "verification_count": 0,
+        "final_message": "\ud83d\udd35305\ud83d\udd35:Enseigne \u2764\ufe0f statut :\u27050\ufe0f\u20e3"
+    },
+    "309": {
+        "predicted_costume": "\u2663\ufe0f",
+        "status": "lost",
+        "predicted_from": 307,
+        "message_text": "\ud83d\udd35309\ud83d\udd35:Enseigne \u2663\ufe0f statut :\u23f3",
+        "message_id": 155,
+        "is_inter": true,
+        "final_message": "\ud83d\udd35309\ud83d\udd35:Enseigne \u2663\ufe0f statut :\u274c"
+    }
+}

@@ -1,0 +1,50 @@
+[
+    {
+        "trigger": "Q\u2663\ufe0f",
+        "predict": "\u2660\ufe0f",
+        "count": 4,
+        "result_suit": "\u2660\ufe0f"
+    },
+    {
+        "trigger": "7\u2663\ufe0f",
+        "predict": "\u2660\ufe0f",
+        "count": 2,
+        "result_suit": "\u2660\ufe0f"
+    },
+    {
+        "trigger": "J\u2666\ufe0f",
+        "predict": "\u2764\ufe0f",
+        "count": 3,
+        "result_suit": "\u2764\ufe0f"
+    },
+    {
+        "trigger": "5\u2666\ufe0f",
+        "predict": "\u2764\ufe0f",
+        "count": 2,
+        "result_suit": "\u2764\ufe0f"
+    },
+    {
+        "trigger": "8\u2666\ufe0f",
+        "predict": "\u2666\ufe0f",
+        "count": 2,
+        "result_suit": "\u2666\ufe0f"
+    },
+    {
+        "trigger": "K\u2663\ufe0f",
+        "predict": "\u2666\ufe0f",
+        "count": 2,
+        "result_suit": "\u2666\ufe0f"
+    },
+    {
+        "trigger": "8\u2666\ufe0f",
+        "predict": "\u2663\ufe0f",
+        "count": 2,
+        "result_suit": "\u2663\ufe0f"
+    },
+    {
+        "trigger": "7\u2660\ufe0f",
+        "predict": "\u2663\ufe0f",
+        "count": 2,
+        "result_suit": "\u2663\ufe0f"
+    }
+]

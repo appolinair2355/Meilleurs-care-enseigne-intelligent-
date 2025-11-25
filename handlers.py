@@ -125,7 +125,17 @@ class TelegramHandlers:
             # Liste des fichiers à inclure
             files_to_include = [
                 'main.py', 'bot.py', 'handlers.py', 'card_predictor.py', 
-                'config.py', 'requirements.txt', 'RENDER_DEPLOYMENT_INSTRUCTIONS.md'
+                'config.py', 'requirements.txt', 'RENDER_DEPLOYMENT_INSTRUCTIONS.md',
+                # Fichiers de données INTER
+                'inter_data.json', 'smart_rules.json', 'sequential_history.json',
+                'collected_games.json', 'inter_mode_status.json',
+                # Fichiers de prédictions
+                'predictions.json', 'processed.json', 'pending_edits.json',
+                # Fichiers de configuration
+                'active_admin_chat_id.json',
+                # Fichiers d'état
+                'last_analysis_time.json', 'last_predicted_game_number.json',
+                'last_prediction_time.json', 'consecutive_fails.json'
             ]
             
             # Créer le fichier zip directement sans tempdir
@@ -146,14 +156,22 @@ class TelegramHandlers:
                             zipf.writestr(filename, content)
                         else:
                             zipf.write(filename, filename)
+                    else:
+                        # Fichiers JSON optionnels - ne pas bloquer si manquants
+                        if filename.endswith('.json'):
+                            logger.warning(f"⚠️ Fichier JSON optionnel non trouvé: {filename}")
             
             # Envoyer le fichier
             url = f"{self.base_url}/sendDocument"
             with open(zip_filename, 'rb') as f:
                 files = {'document': (zip_filename, f, 'application/zip')}
+                # Compter les données collectées
+                data_count = len(self.card_predictor.inter_data) if self.card_predictor else 0
+                rules_count = len(self.card_predictor.smart_rules) if self.card_predictor else 0
+                
                 data = {
                     'chat_id': chat_id,
-                    'caption': '📦 **fin23.zip - Package Replit Deployment**\n\n✅ Port : 5000 (Replit)\n✅ Tous les fichiers inclus\n✅ Mode INTER disponible\n✅ Instructions incluses\n\n**Déploiement :**\n1. Utilisez Replit Deployments\n2. Variables env : BOT_TOKEN\n3. WEBHOOK_URL auto-configuré\n\nVoir RENDER_DEPLOYMENT_INSTRUCTIONS.md pour les détails',
+                    'caption': f'📦 **fin23.zip - Package Replit Deployment**\n\n✅ Port : 5000 (Replit)\n✅ Tous les fichiers inclus\n✅ **{data_count} jeux collectés**\n✅ **{rules_count} règles INTER**\n✅ Instructions incluses\n\n**Déploiement :**\n1. Utilisez Replit Deployments\n2. Variables env : BOT_TOKEN\n3. WEBHOOK_URL auto-configuré\n\nVoir RENDER_DEPLOYMENT_INSTRUCTIONS.md pour les détails',
                     'parse_mode': 'Markdown'
                 }
                 response = requests.post(url, data=data, files=files, timeout=60)
