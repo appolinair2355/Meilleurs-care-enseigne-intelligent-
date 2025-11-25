@@ -25,16 +25,49 @@ WELCOME_MESSAGE = """
 👋 **BIENVENUE SUR LE BOT ENSEIGNE !** ♠️♥️♦️♣️
 
 Je prédis la prochaine Enseigne (Couleur) en utilisant :
-1. Des règles statiques (ex: 10♦️ → ♠️)
-2. Une intelligence artificielle (Mode INTER)
+1. **Règles statiques** : Patterns prédéfinis (ex: 10♦️ → ♠️)
+2. **Intelligence artificielle (Mode INTER)** : Apprend des données réelles
 
-🎯 **COMMANDES:**
-• `/start` - Accueil
-• `/stat` - État du bot
-• `/inter` - Gérer le Mode Intelligent
-• `/collect` - Voir l'état de la collecte
-• `/config` - Configurer les canaux
-• `/deploy` - Télécharger le package Render.com
+━━━━━━━━━━━━━━━━━━━━━
+📋 **COMMANDES DISPONIBLES**
+━━━━━━━━━━━━━━━━━━━━━
+
+**🔹 Informations Générales**
+• `/start` - Afficher ce message d'aide
+• `/stat` - Voir l'état du bot (canaux, mode actif)
+
+**🔹 Mode Intelligent (INTER)**
+• `/inter status` - Voir les règles apprises (Top 2 par enseigne)
+• `/inter activate` - **Activer manuellement** le mode intelligent
+• `/inter default` - Désactiver et revenir aux règles statiques
+
+**🔹 Collecte de Données**
+• `/collect` - Voir toutes les données collectées par enseigne
+
+**🔹 Configuration**
+• `/config` - Configurer les rôles des canaux (Source/Prédiction)
+
+**🔹 Déploiement**
+• `/deploy` - Télécharger le package pour Render.com
+
+━━━━━━━━━━━━━━━━━━━━━
+**💡 Comment ça marche ?**
+━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣ Le bot surveille le canal SOURCE
+2️⃣ Détecte les cartes et fait des prédictions
+3️⃣ Envoie les prédictions dans le canal PRÉDICTION
+4️⃣ Vérifie automatiquement les résultats
+5️⃣ Collecte les données en continu pour apprentissage
+
+🧠 **Mode INTER** : 
+• Collecte automatique des données de jeu
+• Mise à jour des règles toutes les 30 min
+• **Activation MANUELLE uniquement** (commande `/inter activate`)
+• Utilise les Top 2 déclencheurs par enseigne (♠️♥️♦️♣️)
+
+━━━━━━━━━━━━━━━━━━━━━
+⚠️ **Important** : Le mode INTER doit être activé manuellement avec `/inter activate`
 """
 
 HELP_MESSAGE = """
@@ -87,16 +120,16 @@ class TelegramHandlers:
     # (Le code de _handle_command_deploy n'a pas été modifié)
     def _handle_command_deploy(self, chat_id: int):
         try:
-            self.send_message(chat_id, "📦 **Génération de fin18.zip pour Render.com...**")
+            self.send_message(chat_id, "📦 **Génération de fin23.zip pour Replit Deployments...**")
             
             # Liste des fichiers à inclure
             files_to_include = [
                 'main.py', 'bot.py', 'handlers.py', 'card_predictor.py', 
-                'config.py', 'requirements.txt', 'render.yaml'
+                'config.py', 'requirements.txt', 'RENDER_DEPLOYMENT_INSTRUCTIONS.md'
             ]
             
             # Créer le fichier zip directement sans tempdir
-            zip_filename = 'fin18.zip'
+            zip_filename = 'fin23.zip'
             
             import zipfile
             import os
@@ -120,13 +153,13 @@ class TelegramHandlers:
                 files = {'document': (zip_filename, f, 'application/zip')}
                 data = {
                     'chat_id': chat_id,
-                    'caption': '📦 **fin18.zip - Package Render.com**\n\n✅ Port : 10000\n✅ Tous les fichiers inclus\n✅ Mode INTER actif\n✅ /collect affiche tous les déclencheurs\n\n**Instructions :**\n1. Uploadez sur Render.com\n2. Variables env : BOT_TOKEN, WEBHOOK_URL\n3. Déployez !',
+                    'caption': '📦 **fin23.zip - Package Replit Deployment**\n\n✅ Port : 5000 (Replit)\n✅ Tous les fichiers inclus\n✅ Mode INTER disponible\n✅ Instructions incluses\n\n**Déploiement :**\n1. Utilisez Replit Deployments\n2. Variables env : BOT_TOKEN\n3. WEBHOOK_URL auto-configuré\n\nVoir RENDER_DEPLOYMENT_INSTRUCTIONS.md pour les détails',
                     'parse_mode': 'Markdown'
                 }
                 response = requests.post(url, data=data, files=files, timeout=60)
             
             if response.json().get('ok'):
-                logger.info(f"✅ fin18.zip envoyé avec succès")
+                logger.info(f"✅ fin23.zip envoyé avec succès")
                 # Supprimer le fichier local après envoi
                 if os.path.exists(zip_filename):
                     os.remove(zip_filename)
