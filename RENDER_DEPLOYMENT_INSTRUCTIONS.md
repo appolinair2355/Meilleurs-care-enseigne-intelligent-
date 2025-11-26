@@ -2,7 +2,7 @@
 
 ## 🚀 Étapes de Déploiement
 
-### 1. Créer un compte sur Render.com
+### 1. Créer un compte sur Render.com( Kouamé appolinaire le pro en création de bor telegram)
 - Allez sur https://render.com
 - Créez un compte gratuit
 
