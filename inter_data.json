@@ -747,5 +747,33 @@
         "numero_declencheur": 193,
         "result_suit": "\u2666\ufe0f",
         "date": "2025-11-26T03:14:15.535696"
+    },
+    {
+        "numero_resultat": 196,
+        "declencheur": "10\u2665\ufe0f",
+        "numero_declencheur": 194,
+        "result_suit": "\u2663\ufe0f",
+        "date": "2025-11-26T03:15:11.099770"
+    },
+    {
+        "numero_resultat": 197,
+        "declencheur": "K\u2666\ufe0f",
+        "numero_declencheur": 195,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-26T03:16:05.866462"
+    },
+    {
+        "numero_resultat": 198,
+        "declencheur": "2\u2663\ufe0f",
+        "numero_declencheur": 196,
+        "result_suit": "\u2666\ufe0f",
+        "date": "2025-11-26T03:17:13.319850"
+    },
+    {
+        "numero_resultat": 199,
+        "declencheur": "3\u2660\ufe0f",
+        "numero_declencheur": 197,
+        "result_suit": "\u2660\ufe0f",
+        "date": "2025-11-26T03:18:12.095591"
     }
 ]
