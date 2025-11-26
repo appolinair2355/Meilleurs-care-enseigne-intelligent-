@@ -75,44 +75,19 @@ class CardPredictor:
         
         self.prediction_cooldown = 30 
         
-        # CORRECTION: Régénérer les règles INTER au démarrage si:
-        # 1. Mode INTER actif ET règles vides/invalides ET données disponibles
-        # 2. OU si les règles sont un dict au lieu d'une liste (bug précédent)
-        should_regenerate = False
-        if self.inter_data and len(self.inter_data) >= 50:
-            if not self.smart_rules or len(self.smart_rules) == 0:
-                should_regenerate = True
-                logger.info("🔄 AUTO-REGEN: Règles INTER vides, régénération automatique...")
-            elif isinstance(self.smart_rules, dict):
-                should_regenerate = True
-                self.smart_rules = []  # Convertir dict en liste vide
-                logger.info("🔄 AUTO-REGEN: Règles INTER invalides (dict), régénération automatique...")
-        
-        if should_regenerate:
-            self.analyze_and_set_smart_rules(initial_load=True)
-            logger.info(f"✅ AUTO-REGEN: {len(self.smart_rules)} règles INTER générées au démarrage")
+        if self.inter_data and not self.is_inter_mode_active and not self.smart_rules:
+             self.analyze_and_set_smart_rules(initial_load=True)
 
     # --- Persistance ---
     def _load_data(self, filename: str, is_set: bool = False, is_scalar: bool = False) -> Any:
         try:
-            # CORRECTION: smart_rules.json doit retourner [] (liste), pas {} (dict)
-            is_dict = filename in ['channels_config.json', 'predictions.json', 'sequential_history.json', 'pending_edits.json']
-            is_list = filename in ['smart_rules.json', 'inter_data.json', 'collected_games.json']
+            is_dict = filename in ['channels_config.json', 'predictions.json', 'sequential_history.json', 'smart_rules.json', 'pending_edits.json']
             
             if not os.path.exists(filename):
-                if is_set: return set()
-                if is_scalar: return None
-                if is_list: return []
-                if is_dict: return {}
-                return []
+                return set() if is_set else (None if is_scalar else ({} if is_dict else []))
             with open(filename, 'r') as f:
                 content = f.read().strip()
-                if not content:
-                    if is_set: return set()
-                    if is_scalar: return None
-                    if is_list: return []
-                    if is_dict: return {}
-                    return []
+                if not content: return set() if is_set else (None if is_scalar else ({} if is_dict else []))
                 data = json.loads(content)
                 if is_set: return set(data)
                 if filename in ['sequential_history.json', 'predictions.json', 'pending_edits.json'] and isinstance(data, dict): 
@@ -120,13 +95,8 @@ class CardPredictor:
                 return data
         except Exception as e:
             logger.error(f"⚠️ Erreur chargement {filename}: {e}")
-            is_dict = filename in ['channels_config.json', 'predictions.json', 'sequential_history.json', 'pending_edits.json']
-            is_list = filename in ['smart_rules.json', 'inter_data.json', 'collected_games.json']
-            if is_set: return set()
-            if is_scalar: return None
-            if is_list: return []
-            if is_dict: return {}
-            return []
+            is_dict = filename in ['channels_config.json', 'predictions.json', 'sequential_history.json', 'smart_rules.json', 'pending_edits.json']
+            return set() if is_set else (None if is_scalar else ({} if is_dict else []))
 
     def _save_data(self, data: Any, filename: str):
         try:
