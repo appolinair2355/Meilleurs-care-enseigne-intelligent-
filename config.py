@@ -9,11 +9,9 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# --- IDS DE CANAUX FIXES (Mis à jour avec tes valeurs) ---
-# Canal source : Baccarat Kouamé
-DEFAULT_TARGET_CHANNEL_ID = -1002682552255 
-# Canal prédiction : Bot hyper Intelligent carte enseigne confiance 99%
-DEFAULT_PREDICTION_CHANNEL_ID = -1003341134749 
+# --- IDS DE CANAUX PAR DÉFAUT (Supprimés, les vrais IDs sont maintenant dans config.json) ---
+DEFAULT_TARGET_CHANNEL_ID = None 
+DEFAULT_PREDICTION_CHANNEL_ID = None 
 
 # --- CONSTANTES POUR LES CALLBACKS DE CONFIGURATION ---
 CALLBACK_SOURCE = "config_source"
@@ -31,21 +29,13 @@ class Config:
         self.WEBHOOK_URL = self._determine_webhook_url()
         logger.info(f"🔗 Webhook URL configuré: {self.WEBHOOK_URL}")
 
-        # Port pour le serveur (utilise PORT env ou 10000 par défaut pour Render)
+        # Port pour le serveur (utilise PORT env ou 5000 par défaut pour Replit)
         self.PORT = int(os.getenv('PORT') or 10000)
         
-        # --- CORRECTION ICI : Utilisation des IDs fournis ---
-        # On essaie de lire les variables d'environnement, sinon on prend les valeurs par défaut codées en dur
-        env_target = os.getenv('TARGET_CHANNEL_ID')
-        self.TARGET_CHANNEL_ID = int(env_target) if env_target else DEFAULT_TARGET_CHANNEL_ID
-
-        env_pred = os.getenv('PREDICTION_CHANNEL_ID')
-        self.PREDICTION_CHANNEL_ID = int(env_pred) if env_pred else DEFAULT_PREDICTION_CHANNEL_ID
+        # Canaux (Les vraies valeurs sont gérées par CardPredictor)
+        self.TARGET_CHANNEL_ID = DEFAULT_TARGET_CHANNEL_ID
+        self.PREDICTION_CHANNEL_ID = DEFAULT_PREDICTION_CHANNEL_ID
         
-        # Log pour confirmer au démarrage
-        logger.info(f"✅ ID Source configuré: {self.TARGET_CHANNEL_ID}")
-        logger.info(f"✅ ID Prédiction configuré: {self.PREDICTION_CHANNEL_ID}")
-
         # Mode Debug
         self.DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
         
@@ -58,8 +48,7 @@ class Config:
         if not token:
             raise ValueError("BOT_TOKEN environment variable not set.")
         if ':' not in token or not token.split(':')[0].isdigit():
-            # Petite tolérance si le format change, mais warning
-            logger.warning("Format du BOT_TOKEN potentiellement incorrect")
+            raise ValueError("Invalid bot token format")
 
         logger.info(f"✅ BOT_TOKEN configuré: {token[:10]}...")
         return token
@@ -68,8 +57,15 @@ class Config:
         """Détermine l'URL du webhook avec priorité à l'ENV."""
         webhook_url = os.getenv('WEBHOOK_URL')
         
+        # Logique d'auto-génération (adaptée à Replit)
         if not webhook_url:
-            if os.getenv('RENDER'):
+            # Détection Replit
+            if os.getenv('REPLIT_DOMAINS'):
+                webhook_url = f"https://{os.getenv('REPLIT_DOMAINS')}"
+            elif os.getenv('REPL_SLUG'):
+                webhook_url = f'https://{os.getenv("REPL_SLUG", "")}.{os.getenv("REPL_OWNER", "")}.repl.co'
+            # Sur Render, WEBHOOK_URL DOIT être défini manuellement
+            elif os.getenv('RENDER'):
                 logger.warning("⚠️ Sur Render.com, WEBHOOK_URL doit être défini manuellement dans les variables d'environnement")
         
         return webhook_url or ""
@@ -79,9 +75,6 @@ class Config:
         if self.WEBHOOK_URL and not self.WEBHOOK_URL.startswith('https://'):
             logger.warning("⚠️ L'URL du webhook devrait utiliser HTTPS pour la production.")
         
-        if not self.PREDICTION_CHANNEL_ID or not self.TARGET_CHANNEL_ID:
-             logger.error("⚠️ ATTENTION : Les IDs des canaux ne sont pas configurés corrects !")
-
         logger.info("✅ Configuration validée avec succès.")
     
     def get_webhook_url(self) -> str:
@@ -100,5 +93,5 @@ class Config:
             f"  PREDICTION_CHANNEL_ID: {self.PREDICTION_CHANNEL_ID},\n"
             f"  DEBUG: {self.DEBUG}\n"
             f")"
-            )
+)
         

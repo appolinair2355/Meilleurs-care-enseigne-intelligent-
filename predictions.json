@@ -124,5 +124,21 @@
         "message_id": 155,
         "is_inter": true,
         "final_message": "\ud83d\udd35309\ud83d\udd35:Enseigne \u2663\ufe0f statut :\u274c"
+    },
+    "1460": {
+        "predicted_costume": "\u2764\ufe0f",
+        "status": "pending",
+        "predicted_from": 1458,
+        "message_text": "\ud83d\udd351460\ud83d\udd35:Enseigne \u2764\ufe0f statut :\u23f3",
+        "message_id": 464,
+        "is_inter": true
+    },
+    "188880": {
+        "predicted_costume": "\u2764\ufe0f",
+        "status": "pending",
+        "predicted_from": 188878,
+        "message_text": "\ud83d\udd35188880\ud83d\udd35:Enseigne \u2764\ufe0f statut :\u23f3",
+        "message_id": 465,
+        "is_inter": true
     }
 }

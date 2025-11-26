@@ -2,7 +2,7 @@
     {
         "trigger": "Q\u2663\ufe0f",
         "predict": "\u2660\ufe0f",
-        "count": 4,
+        "count": 5,
         "result_suit": "\u2660\ufe0f"
     },
     {
@@ -30,7 +30,7 @@
         "result_suit": "\u2666\ufe0f"
     },
     {
-        "trigger": "K\u2663\ufe0f",
+        "trigger": "7\u2663\ufe0f",
         "predict": "\u2666\ufe0f",
         "count": 2,
         "result_suit": "\u2666\ufe0f"
